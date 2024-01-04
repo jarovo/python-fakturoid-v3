@@ -114,6 +114,7 @@ class ExpenseLine(Line):
 
 
 class AbstractInvoice(Model):
+    line_model = None
     lines = []
     _loaded_lines = []  # keep loaded data to be able delete removed lines
 
@@ -122,10 +123,10 @@ class AbstractInvoice(Model):
             self.lines = []
             self._loaded_lines = []
             for line in fields.pop('lines'):
-                if not isinstance(line, InvoiceLine):
+                if not isinstance(line, Line):
                     if 'id' in line:
                         self._loaded_lines.append(line)
-                    line = InvoiceLine(**line)
+                    line = self.line_model(**line)
                 self.lines.append(line)
         super(AbstractInvoice, self).update(fields)
 
@@ -148,6 +149,7 @@ class AbstractInvoice(Model):
 class Invoice(AbstractInvoice):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     number = None
+    line_model = InvoiceLine
 
     class Meta:
         readonly = [
@@ -185,6 +187,7 @@ class InventoryItem(Model):
 class Expense(AbstractInvoice):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     number = None
+    line_model = ExpenseLine
 
     class Meta:
         readonly = [

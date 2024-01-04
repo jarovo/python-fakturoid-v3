@@ -168,3 +168,7 @@ Use `InvoiceLine` for generator lines
 <code>Fakturoid.<b>Message</b></code>
 
 [http://fakturoid.docs.apiary.io/#reference/messages](https://fakturoid.docs.apiary.io/#reference/messages)
+
+<code>Fakturoid.<b>InventoryItems</b></code>
+
+[http://fakturoid.docs.apiary.io/#reference/inventory-items](https://fakturoid.docs.apiary.io/#reference/inventory-items)

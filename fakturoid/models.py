@@ -6,7 +6,7 @@ from dateutil.parser import parse
 from fakturoid import six
 
 __all__ = ['Account', 'Subject', 'InvoiceLine', 'Invoice', 'Generator',
-           'Message', 'Expense']
+           'Message', 'Expense', 'ExpenseLine']
 
 
 class Model(six.UnicodeMixin):
@@ -85,7 +85,7 @@ class Subject(Model):
         return self.name
 
 
-class InvoiceLine(Model):
+class Line(Model):
     quantity = None
 
     class Meta:
@@ -104,6 +104,13 @@ class InvoiceLine(Model):
                 return self.name
             else:
                 return "{0} {1}".format(self.quantity, self.name)
+
+
+class InvoiceLine(Line):
+    pass
+
+class ExpenseLine(Line):
+    pass
 
 
 class AbstractInvoice(Model):
@@ -156,6 +163,20 @@ class Invoice(AbstractInvoice):
             'native_subtotal', 'native_total', 'remaining_amount',
             'remaining_native_amount'
         ]
+
+    def __unicode__(self):
+        return self.number
+
+
+class InventoryItem(Model):
+    """See http://docs.fakturoid.apiary.io/ for complete field reference."""
+    name = None
+
+    class Meta:
+        readonly = 'id'
+        #name sku article_number_type article_number unit_name vat_rate supply_type private_note suggest_for'.split()
+        boolean = ['track_quantity', 'allow_below_zero']
+        decimal = 'quantity min_quantity max_quantity native_purchase_price native_retail_price'.split()
 
     def __unicode__(self):
         return self.number

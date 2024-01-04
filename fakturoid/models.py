@@ -94,7 +94,7 @@ class Line(Model):
 
     def __init__(self, **kwargs):
         self.quantity = Decimal(1)
-        super(InvoiceLine, self).__init__(**kwargs)
+        super(Line, self).__init__(**kwargs)
 
     def __unicode__(self):
         if self.unit_name:

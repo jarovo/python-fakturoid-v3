@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import unittest
 from datetime import date
-from mock import patch
+from unittest.mock import patch
 
 from fakturoid import Fakturoid
 

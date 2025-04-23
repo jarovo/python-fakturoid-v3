@@ -2,6 +2,7 @@ import re
 import json
 from datetime import date, datetime
 from functools import wraps
+import base64
 
 import requests
 
@@ -14,18 +15,16 @@ link_header_pattern = re.compile(r'page=(\d+)[^>]*>; rel="last"')
 
 
 class Fakturoid(object):
-    """Fakturoid API v2 - http://docs.fakturoid.apiary.io/"""
+    """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
     slug = None
-    api_key = None
-    user_agent = 'python-fakturoid (https://github.com/farin/python-fakturoid)'
+    client_id = None
+    user_agent = 'python-fakturoid (https://github.com/jarovo/python-fakturoid-v3)'
+    baseurl = "https://app.fakturoid.cz/api/v3"
 
     _models_api = None
 
-    def __init__(self, slug, email, api_key, user_agent=None):
+    def __init__(self, slug:str):
         self.slug = slug
-        self.api_key = api_key
-        self.email = email
-        self.user_agent = user_agent or self.user_agent
 
         self._models_api = {
             Account: AccountApi(self),
@@ -60,6 +59,16 @@ class Fakturoid(object):
                 return fn(self, mapi, *args, **kwargs)
             return wrapper
         return wrap
+
+    def oauth_token_client_credentials_flow(self, user_agent, client_id:bytes, client_secret:bytes):
+        credentials = base64.urlsafe_b64encode(b':'.join((client_id, client_secret)))
+        headers={'Accept': 'application/json',
+                 'User-Agent': user_agent,
+                 'Authorization': b'Basic ' + credentials}
+        resp = requests.post(f'{self.baseurl}/oauth/token', headers=headers, data={"grant_type": "client_credentials"})
+        resp.raise_for_status()
+        self.token = resp.json()
+        # TODO handle token expiration.
 
     def account(self):
         return self._models_api[Account].load()
@@ -131,10 +140,10 @@ class Fakturoid(object):
         return None
 
     def _make_request(self, method, success_status, endpoint, **kwargs):
-        url = "https://app.fakturoid.cz/api/v2/accounts/{0}/{1}.json".format(self.slug, endpoint)
-        headers = {'User-Agent': self.user_agent}
+        url = f'{self.baseurl}/accounts/{self.slug}/{endpoint}.json'
+        headers = {'User-Agent': self.user_agent, 'Authorization': self.token['token_type'] + ' ' + self.token['access_token']}
         headers.update(kwargs.pop('headers', {}))
-        r = getattr(requests, method)(url, auth=(self.email, self.api_key), headers=headers, **kwargs)
+        r = getattr(requests, method)(url, headers=headers, **kwargs)
         try:
             json_result = r.json()
         except Exception:
@@ -152,7 +161,7 @@ class Fakturoid(object):
             raise ValueError(json_result["errors"])
 
         r.raise_for_status()
-
+        
     def _get(self, endpoint, params=None):
         return self._make_request('get', 200, endpoint, params=params)
 
@@ -215,7 +224,6 @@ class CrudModelApi(ModelApi):
     def delete(self, model):
         id = self.extract_id(model)
         self.session._delete('{0}/{1}'.format(self.endpoint, id))
-
 
 class AccountApi(ModelApi):
     model_type = Account

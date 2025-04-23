@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fakturoid-v3"
+version = "2025.0.0"
+dependencies = [
+  "requests",
+  "python-dateutil"
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "Roman Krejcik", email = "farin@farin.cz"},
+  {name = "Jaroslav Henner", email = "jaroslav.henner@gmail.com"},
+]
+maintainers = [
+  {name = "Jaroslav Henner", email = "jaroslav.henner@gmail.com"}
+]
+description = "The Python interface to online accounting service [Fakturoid](http://fakturoid.cz/)."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E.*"]
+keywords = ["fakturoid", "accounting"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 2.6",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business :: Financial :: Accounting",
+]
+
+[project.urls]
+Homepage = "https://github.com/jarovo/python-fakturoid-v3/"
+Repository = "https://github.com/jarovo/python-fakturoid-v3/"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fakturoid"]

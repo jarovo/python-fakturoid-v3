@@ -13,7 +13,7 @@ Install from PyPI
 
 or alternatively install development version directly from github
 
-    pip install -e git+git://github.com/farin/python-fakturoid#egg=fakturoid
+    pip install -e git+git://github.com/farin/python-fakturoid-v3#egg=fakturoid
 
 
 Supported Python versions are 2.6+ and 3.x. Dependencies are [requests](https://pypi.python.org/pypi/requests),
@@ -21,11 +21,14 @@ Supported Python versions are 2.6+ and 3.x. Dependencies are [requests](https://
 
 ## Quickstart
 
+Generate the Client ID and Client Secret from your Fakturoid user screen: Settings → User account.
+
 Create context:
 ```python
 from fakturoid import Fakturoid
 
 fa = Fakturoid('yourslug', 'your@email.com', 'apikey038dc73...', 'YourApp (yourname@example.com)')
+fa.oauth_token_client_credentials_flow('YourApp', b'CLIENT_ID', b'CLIENT_SECRET')
 ```
 
 Print 25 regular invoices in year 2013:

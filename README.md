@@ -2,7 +2,7 @@
 
 The Python interface to online accounting service [Fakturoid](http://fakturoid.cz/).
 
-This library is developed and maintained by Roman Krejcik ([farin@farin.cz](mailto:farin@farin.cz)).
+This library is developed and maintained by Jaroslav Henner ([jaroslav.henner@gmail.com](mailto:jaroslav.henner@gmail.com)).
 It is unoficial and no support from Fakturoid team can be claimed.
 
 ## Installation
@@ -13,7 +13,7 @@ Install from PyPI
 
 or alternatively install development version directly from github
 
-    pip install -e git+git://github.com/farin/python-fakturoid-v3#egg=fakturoid
+    pip install -e git+git://github.com/jarovo/python-fakturoid-v3#egg=fakturoid-v3
 
 
 Supported Python versions are 2.6+ and 3.x. Dependencies are [requests](https://pypi.python.org/pypi/requests),

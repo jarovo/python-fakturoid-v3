@@ -1,6 +1,6 @@
 # fakturoid.cz Python API
 
-The Python interface to online accounting service [Fakturoid](http://fakturoid.cz/).
+The Python interface to online accounting service [Fakturoid](http://fakturoid.cz/) using Faktiuroid's v3 api.
 
 This library is developed and maintained by Jaroslav Henner ([jaroslav.henner@gmail.com](mailto:jaroslav.henner@gmail.com)).
 It is unoficial and no support from Fakturoid team can be claimed.
@@ -9,7 +9,7 @@ It is unoficial and no support from Fakturoid team can be claimed.
 
 Install from PyPI
 
-    pip install fakturoid
+    pip install fakturoid-v3
 
 or alternatively install development version directly from github
 
@@ -27,7 +27,7 @@ Create context:
 ```python
 from fakturoid import Fakturoid
 
-fa = Fakturoid('yourslug', 'your@email.com', 'apikey038dc73...', 'YourApp (yourname@example.com)')
+fa = Fakturoid('yourslug')
 fa.oauth_token_client_credentials_flow('YourApp', b'CLIENT_ID', b'CLIENT_SECRET')
 ```
 

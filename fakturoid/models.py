@@ -209,6 +209,7 @@ class Expense(AbstractInvoice):
 class Generator(AbstractInvoice):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name = None
+    line_model = Line
 
     class Meta:
         readonly = [

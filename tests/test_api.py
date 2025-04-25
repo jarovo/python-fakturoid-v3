@@ -16,10 +16,12 @@ class FakturoidTestCase(unittest.TestCase):
         self.fa = Fakturoid('myslug')
         self.fa.oauth_token_client_credentials_flow('pytest', b'client_id', b'client_secret')
 
+
 class OAuthTestCase(FakturoidTestCase):
     @patch('requests.post', return_value=response('token.json'))
     def test_oauth_credentials_flow(self, mock):
         self.fa.oauth_token_client_credentials_flow('pytest', b'client_id', b'client_secret')
+        assert self.fa.token
 
 
 class AccountTestCase(FakturoidTestCase):
@@ -27,6 +29,7 @@ class AccountTestCase(FakturoidTestCase):
     def test_load(self, mock):
         account = self.fa.account()
 
+        mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/account.json', mock.call_args[0][0])
         self.assertEqual("Alexandr Hejsek", account.name)
         self.assertEqual("testdph@test.cz", account.email)
@@ -38,6 +41,7 @@ class SubjectTestCase(FakturoidTestCase):
     def test_load(self, mock):
         subject = self.fa.subject(28)
 
+        mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/subjects/28.json', mock.call_args[0][0])
         self.assertEqual(28, subject.id)
         self.assertEqual('47123737', subject.registration_no)
@@ -47,6 +51,7 @@ class SubjectTestCase(FakturoidTestCase):
     def test_find(self, mock):
         subjects = self.fa.subjects()
 
+        mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/subjects.json', mock.call_args[0][0])
         self.assertEqual(2, len(subjects))
         self.assertEqual('Apple Czech s.r.o.', subjects[0].name)
@@ -57,7 +62,7 @@ class InvoiceTestCase(FakturoidTestCase):
     @patch('requests.get', return_value=response('invoice_9.json'))
     def test_load(self, mock):
         invoice = self.fa.invoice(9)
-
+        mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9.json', mock.call_args[0][0])
         self.assertEqual('2012-0004', invoice.number)
 
@@ -86,38 +91,27 @@ class InvoiceTestCase(FakturoidTestCase):
     @patch('requests.get', return_value=response('invoices.json'))
     def test_find(self, mock):
         self.fa.invoices()[:10]
-
+        mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json', mock.call_args[0][0])
         # TODO paging test
+
 
 class InventoryTestCase(FakturoidTestCase):
 
     @patch('requests.get', return_value=response('inventory_items.json'))
-    def test_load(self, mock):
-        subject = self.fa.inventory_items(28)
-
-        self.assertEqual('https://app.fakturoid.cz/api/v2/accounts/myslug/subjects/28.json', mock.call_args[0][0])
-        self.assertEqual(28, subject.id)
-        self.assertEqual('47123737', subject.registration_no)
-        self.assertEqual('2012-06-02T09:34:47+02:00', subject.updated_at.isoformat())
-        self.assertEqual('https://app.fakturoid.cz/api/v2/accounts/myslug/inventory-items.json', mock.call_args[0][0])
-        self.assertEqual(2, len(subjects))
-        self.assertEqual('Apple Czech s.r.o.', subjects[0].name)
-
-    @patch('requests.get', return_value=response('inventory_items_42.json'))
-    def test_load(self, mock):
-        inventory_item = self.fa.inventory_items(42)
-
-        self.assertEqual('https://app.fakturoid.cz/api/v2/accounts/myslug/inventory_items/42.json', mock.call_args[0][0])
-        self.assertEqual(42, inventory_item.id)
- 
-    @patch('requests.get', return_value=response('inventory_items.json'))
     def test_find(self, mock):
-        inventory_items = self.fa.inventory_items()
+        inventory_items = list(self.fa.inventory_items())
+        mock.assert_called_once()
+        self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/inventory_items.json', mock.call_args[0][0])
+        self.assertEqual(4, len(inventory_items))
 
-        self.assertEqual('https://app.fakturoid.cz/api/v2/accounts/myslug/inventory_items.json', mock.call_args[0][0])
-        self.assertEqual(2, len(inventory_items))
-        self.assertEqual('MacBookPro', inventory_items[0].name)
+    @patch('requests.get', return_value=response('inventory_items_203140.json'))
+    def test_load(self, mock):
+        inventory_item = self.fa.inventory_item(203140)
+        mock.assert_called_once()
+        self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/inventory_items/203140.json', mock.call_args[0][0])
+        self.assertEqual(203140, inventory_item.id)
+
 
 class GeneratorTestCase(FakturoidTestCase):
 

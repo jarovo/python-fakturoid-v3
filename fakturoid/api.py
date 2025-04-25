@@ -120,9 +120,13 @@ class Fakturoid(object):
     def generators(self, mapi, *args, **kwargs):
         return mapi.find(*args, **kwargs)
 
-    @model_api(Invoice)
-    def inventory_items(self, mapi, id):
+    @model_api(InventoryItem)
+    def inventory_item(self, mapi, id):
         return mapi.load(id)
+
+    @model_api(InventoryItem)
+    def inventory_items(self, mapi, *args, **kwargs):
+        return mapi.find(*args, **kwargs)
 
     @model_api()
     def save(self, mapi, obj, **kwargs):
@@ -422,14 +426,14 @@ class GeneratorsApi(CrudModelApi):
 
 class InventoryApi(CrudModelApi):
     model_type = InventoryItem
-    endpoint = 'inventory-items'
+    endpoint = 'inventory_items'
 
     def find(self, name=None, article_number=None, sku=None):
         params = {}
         if name:
             params['name'] = name
 
-        return InventoryItem.find(params)
+        return ModelList(self, self.endpoint, params)
 
 class MessagesApi(ModelApi):
     model_type = Message

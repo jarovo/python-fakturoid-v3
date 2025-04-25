@@ -176,12 +176,12 @@ class InventoryItem(Model):
 
     class Meta:
         readonly = 'id'
-        #name sku article_number_type article_number unit_name vat_rate supply_type private_note suggest_for'.split()
+        writeable = 'name sku article_number_type article_number unit_name vat_rate supply_type private_note suggest_for'.split()
         boolean = ['track_quantity', 'allow_below_zero']
         decimal = 'quantity min_quantity max_quantity native_purchase_price native_retail_price'.split()
 
     def __unicode__(self):
-        return self.number
+        return self.name
 
 
 class Expense(AbstractInvoice):
@@ -219,7 +219,6 @@ class Generator(AbstractInvoice):
 
     def __unicode__(self):
         return self.name
-
 
 class Message(Model):
     """See http://docs.fakturoid.apiary.io/#reference/messages for complete field reference."""

@@ -14,13 +14,13 @@ class FakturoidTestCase(unittest.TestCase):
     @patch('requests.post', return_value=response("token.json"))
     def setUp(self, mock):
         self.fa = Fakturoid('myslug', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
-        self.fa.oauth_token_client_credentials_flow('pytest', b'client_id', b'client_secret')
+        self.fa.oauth_token_client_credentials_flow(b'client_id', b'client_secret')
 
 
 class OAuthTestCase(FakturoidTestCase):
     @patch('requests.post', return_value=response('token.json'))
     def test_oauth_credentials_flow(self, mock):
-        self.fa.oauth_token_client_credentials_flow('pytest', b'client_id', b'client_secret')
+        self.fa.oauth_token_client_credentials_flow(b'client_id', b'client_secret')
         assert self.fa.token
 
 

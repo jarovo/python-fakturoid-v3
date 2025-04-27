@@ -63,10 +63,10 @@ class Fakturoid:
             return wrapper
         return wrap
 
-    def oauth_token_client_credentials_flow(self, user_agent, client_id:bytes, client_secret:bytes):
+    def oauth_token_client_credentials_flow(self, client_id:bytes, client_secret:bytes):
         credentials = base64.urlsafe_b64encode(b':'.join((client_id, client_secret)))
         headers={'Accept': 'application/json',
-                 'User-Agent': user_agent,
+                 'User-Agent': self.user_agent,
                  'Authorization': b'Basic ' + credentials}
         resp = requests.post(f'{self.baseurl}/oauth/token', headers=headers, data={"grant_type": "client_credentials"})
         resp.raise_for_status()
@@ -305,7 +305,7 @@ class ExpensesApi(CrudModelApi):
         'pay': {'paid_on', 'paid_amount', 'variable_symbol', 'bank_account_id'}
     }
 
-    def fire(self, expense_id, event, **kwargs):
+    def fire(self, expense_id: int, event, **kwargs):
         if not isinstance(expense_id, int):
             raise TypeError('expense_id must be int')
         if event not in self.EVENTS:

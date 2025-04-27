@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 import json
 from datetime import date, datetime
@@ -8,12 +9,37 @@ import base64
 
 import requests
 
-from fakturoid.model_api import APIResponse, ModelApi
+from fakturoid.model_api import ModelApi
 from fakturoid.models import Model, Account, Subject, Invoice, InventoryItem, Generator, Message, Expense
 from fakturoid.paging import ModelList
 
 
 __all__ = ['Fakturoid']
+
+
+LINK_HEADER_PATTERN = re.compile(r'page=(\d+)[^>]*>; rel="last"')
+
+def extract_page_link(header):
+    m = LINK_HEADER_PATTERN.search(header)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+class APIResponse:
+    _requests_response: requests.Response
+
+    def __init__(self, requests_response: requests.Response):
+        self._requests_response = requests_response
+
+    def from_json(self):
+        return self._requests_response.json()
+
+    def page_count(self):
+        if 'link' in self._requests_response.headers:
+            return extract_page_link(self._requests_response.headers['link'])
+        else:
+            return None
 
 
 class Fakturoid:

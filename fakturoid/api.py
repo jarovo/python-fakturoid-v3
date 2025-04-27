@@ -6,25 +6,54 @@ import base64
 
 import requests
 
-from fakturoid.models import Account, Subject, Invoice, InventoryItem, Generator, Message, Expense
+from fakturoid.models import Model, Account, Subject, Invoice, InventoryItem, Generator, Message, Expense
 from fakturoid.paging import ModelList
+
 
 __all__ = ['Fakturoid']
 
 link_header_pattern = re.compile(r'page=(\d+)[^>]*>; rel="last"')
 
 
+class ModelApi(object):
+    session = None
+    model_type = None
+    endpoint = None
+
+    def __init__(self, session):
+        self.session = session
+
+    def extract_id(self, value):
+        if isinstance(value, int):
+            return value
+        if not isinstance(value, self.model_type):
+            raise TypeError("int or {0} expected".format(self.model_type.__name__.lower()))
+        if not getattr(value, 'id', None):
+            raise ValueError("object wit unassigned id")
+        return value.id
+
+    def unpack(self, response):
+        raw = response['json']
+        if isinstance(raw, list):
+            objects = []
+            for fields in raw:
+                objects.append(self.model_type(**fields))
+            return objects
+        else:
+            return self.model_type(**raw)
+
+
 class Fakturoid(object):
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
-    slug = None
-    client_id = None
-    user_agent = 'python-fakturoid (https://github.com/jarovo/python-fakturoid-v3)'
+    slug: str
+    user_agent: str
+    _models_api: dict[Model, ModelApi]
+
     baseurl = "https://app.fakturoid.cz/api/v3"
-
-    _models_api = None
-
-    def __init__(self, slug:str):
+    
+    def __init__(self, slug:str, user_agent:str):
         self.slug = slug
+        self.user_agent = user_agent
 
         self._models_api = {
             Account: AccountApi(self),
@@ -182,34 +211,6 @@ class Fakturoid(object):
 
     def _delete(self, endpoint):
         return self._make_request('delete', 204, endpoint)
-
-
-class ModelApi(object):
-    session = None
-    model_type = None
-    endpoint = None
-
-    def __init__(self, session):
-        self.session = session
-
-    def extract_id(self, value):
-        if isinstance(value, int):
-            return value
-        if not isinstance(value, self.model_type):
-            raise TypeError("int or {0} expected".format(self.model_type.__name__.lower()))
-        if not getattr(value, 'id', None):
-            raise ValueError("object wit unassigned id")
-        return value.id
-
-    def unpack(self, response):
-        raw = response['json']
-        if isinstance(raw, list):
-            objects = []
-            for fields in raw:
-                objects.append(self.model_type(**fields))
-            return objects
-        else:
-            return self.model_type(**raw)
 
 
 class CrudModelApi(ModelApi):
@@ -424,6 +425,7 @@ class GeneratorsApi(CrudModelApi):
 
         return super(GeneratorsApi, self).find(params, endpoint)
 
+
 class InventoryApi(CrudModelApi):
     model_type = InventoryItem
     endpoint = 'inventory_items'
@@ -434,6 +436,7 @@ class InventoryApi(CrudModelApi):
             params['name'] = name
 
         return ModelList(self, self.endpoint, params)
+
 
 class MessagesApi(ModelApi):
     model_type = Message

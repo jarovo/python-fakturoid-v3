@@ -1,15 +1,12 @@
-from __future__ import unicode_literals
-
 from decimal import Decimal
 from dateutil.parser import parse
 
-from fakturoid import six
 
 __all__ = ['Account', 'Subject', 'InvoiceLine', 'Invoice', 'Generator',
            'Message', 'Expense', 'ExpenseLine']
 
 
-class Model(six.UnicodeMixin):
+class Model:
     """Base class for all Fakturoid model objects"""
     id = None
 
@@ -21,7 +18,7 @@ class Model(six.UnicodeMixin):
 
     def update(self, fields):
         for field, value in fields.items():
-            if value and isinstance(value, six.string_types):
+            if value and isinstance(value, str):
                 if field.endswith('_at'):
                     fields[field] = parse(value)
                 elif field.endswith('_on') or field.endswith('_due') or field.endswith('_date'):
@@ -66,7 +63,7 @@ class Account(Model):
     class Meta:
         decimal = []
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def __repr__(self):

@@ -1,7 +1,5 @@
 from itertools import islice
 
-from fakturoid import six
-
 
 class PagedResource(object):
     """List adapter for paged resources. Returns sliceable lazy loaded object."""
@@ -50,7 +48,7 @@ class PagedResource(object):
             raise TypeError('list indices must be integers')
 
 
-class ModelList(PagedResource, six.UnicodeMixin):
+class ModelList(PagedResource):
 
     def __init__(self, model_api, endpoint, params=None):
         super(ModelList, self).__init__()

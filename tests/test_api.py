@@ -32,7 +32,7 @@ class AccountTestCase(FakturoidTestCase):
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/account.json', mock.call_args[0][0])
         self.assertEqual("Alexandr Hejsek", account.name)
-        self.assertEqual("testdph@test.cz", account.email)
+        self.assertEqual("testdph@test.cz", account.invoice_email)
 
 
 class SubjectTestCase(FakturoidTestCase):
@@ -65,6 +65,8 @@ class InvoiceTestCase(FakturoidTestCase):
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9.json', mock.call_args[0][0])
         self.assertEqual('2012-0004', invoice.number)
+        self.assertEqual('PC', invoice.lines[0].name)
+        self.assertEqual('Notebook', invoice.lines[1].name)
 
     @patch('requests.post', return_value=FakeResponse(''))
     def test_fire(self, mock):

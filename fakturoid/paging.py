@@ -1,7 +1,7 @@
 from itertools import islice
+from .model_api import ModelApi
 
-
-class PagedResource(object):
+class PagedResource:
     """List adapter for paged resources. Returns sliceable lazy loaded object."""
 
     def __init__(self, page_size=20):
@@ -49,8 +49,7 @@ class PagedResource(object):
 
 
 class ModelList(PagedResource):
-
-    def __init__(self, model_api, endpoint, params=None):
+    def __init__(self, model_api: ModelApi, endpoint, params=None):
         super(ModelList, self).__init__()
         self.model_api = model_api
         self.endpoint = endpoint
@@ -61,9 +60,8 @@ class ModelList(PagedResource):
         params.update(self.params)
         response = self.model_api.session._get(self.endpoint, params=params)
         if self.page_count is None:
-            self.page_count = response.get('page_count', n + 1)
-        return list(self.model_api.unpack(response))
+            self.page_count = response.page_count() or (n + 1)
+        return self.model_api.from_list_response(response)
 
-    def __unicode__(self):
-        # TODO print if loaded
+    def __str__(self):
         return "<list of {0} models>".format(self.model_api.model_type.__name__)

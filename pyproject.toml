@@ -4,8 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fakturoid-v3"
-version = "2025.0.0"
+version = "2025.0.1"
 dependencies = [
+  "pydantic",
   "requests",
   "python-dateutil"
 ]

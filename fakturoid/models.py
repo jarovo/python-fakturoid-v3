@@ -1,19 +1,22 @@
+import dataclasses
+from datetime import datetime
+from typing import Optional
 from decimal import Decimal
 from dateutil.parser import parse
+from pydantic.dataclasses import dataclass
+
+__all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
+           'Message', 'Expense']
 
 
-__all__ = ['Account', 'Subject', 'InvoiceLine', 'Invoice', 'Generator',
-           'Message', 'Expense', 'ExpenseLine']
-
-
+@dataclass
 class Model:
     """Base class for all Fakturoid model objects"""
-    id = None
 
     def __init__(self, **fields):
         self.update(fields)
 
-    def __repr__(self):
+    def __unicode__(self):
         return "<{0}:{1}>".format(self.__class__.__name__, self.id)
 
     def update(self, fields):
@@ -56,23 +59,28 @@ class Model:
         return data
 
 
+@dataclass
+class Unique:
+    id: int
+
+
+@dataclass
 class Account(Model):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-    name = None
+    name: str
+    invoice_email: str
+    registration_no: Optional[str]
 
     class Meta:
         decimal = []
 
-    def __str__(self):
-        return self.name
 
-    def __repr__(self):
-        return "<{0}:{1}>".format(self.__class__.__name__, self.name)
-
-
-class Subject(Model):
+@dataclass
+class Subject(Model, Unique):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-    name = None
+    name: str
+    registration_no: Optional[str]
+    updated_at: datetime
 
     class Meta:
         readonly = ['id', 'avatar_url', 'html_url', 'url', 'updated_at']
@@ -82,8 +90,21 @@ class Subject(Model):
         return self.name
 
 
+@dataclass
+class Inventory:
+    item_id: str
+    sku: str
+    article_number_type: str
+    article_article_number_type: str
+    move_id: int
+
+
+@dataclass
 class Line(Model):
-    quantity = None
+    name: str
+    unit_price: Decimal
+    quantity: Decimal
+    unit_name: Optional[str]
 
     class Meta:
         readonly = []  # no id here, to correct update
@@ -103,16 +124,9 @@ class Line(Model):
                 return "{0} {1}".format(self.quantity, self.name)
 
 
-class InvoiceLine(Line):
-    pass
-
-class ExpenseLine(Line):
-    pass
-
-
-class AbstractInvoice(Model):
-    line_model = None
-    lines = []
+@dataclass
+class AbstractInvoice(Model, Unique):
+    lines: list[Line]
     _loaded_lines = []  # keep loaded data to be able delete removed lines
 
     def update(self, fields):
@@ -143,10 +157,11 @@ class AbstractInvoice(Model):
         return super(AbstractInvoice, self).is_field_writable(field, value)
 
 
+@dataclass
 class Invoice(AbstractInvoice):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-    number = None
-    line_model = InvoiceLine
+
+    number: str
 
     class Meta:
         readonly = [
@@ -167,9 +182,10 @@ class Invoice(AbstractInvoice):
         return self.number
 
 
-class InventoryItem(Model):
+@dataclass
+class InventoryItem(Model, Unique):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-    name = None
+    name: str
 
     class Meta:
         readonly = 'id'
@@ -181,10 +197,11 @@ class InventoryItem(Model):
         return self.name
 
 
+@dataclass
 class Expense(AbstractInvoice):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-    number = None
-    line_model = ExpenseLine
+
+    number: str
 
     class Meta:
         readonly = [
@@ -203,9 +220,10 @@ class Expense(AbstractInvoice):
         return self.number
 
 
-class Generator(AbstractInvoice):
+@dataclass
+class Generator(Model):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-    name = None
+    name: str
     line_model = Line
 
     class Meta:
@@ -218,9 +236,11 @@ class Generator(AbstractInvoice):
     def __unicode__(self):
         return self.name
 
+
+@dataclass
 class Message(Model):
     """See http://docs.fakturoid.apiary.io/#reference/messages for complete field reference."""
-    subject = None
+    subject: str
 
     class Meta:
         decimal = []

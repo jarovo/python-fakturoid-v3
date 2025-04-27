@@ -2,7 +2,6 @@
   "subdomain": "testdph",
   "plan": "2",
   "plan_price": 300,
-  "email": "testdph@test.cz",
   "invoice_email": "testdph@test.cz",
   "phone": null,
   "web": null,

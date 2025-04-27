@@ -13,7 +13,7 @@ class FakturoidTestCase(unittest.TestCase):
 
     @patch('requests.post', return_value=response("token.json"))
     def setUp(self, mock):
-        self.fa = Fakturoid('myslug')
+        self.fa = Fakturoid('myslug', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
         self.fa.oauth_token_client_credentials_flow('pytest', b'client_id', b'client_secret')
 
 
@@ -32,7 +32,7 @@ class AccountTestCase(FakturoidTestCase):
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/account.json', mock.call_args[0][0])
         self.assertEqual("Alexandr Hejsek", account.name)
-        self.assertEqual("testdph@test.cz", account.email)
+        self.assertEqual("testdph@test.cz", account.invoice_email)
 
 
 class SubjectTestCase(FakturoidTestCase):
@@ -65,13 +65,15 @@ class InvoiceTestCase(FakturoidTestCase):
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9.json', mock.call_args[0][0])
         self.assertEqual('2012-0004', invoice.number)
+        self.assertEqual('PC', invoice.lines[0].name)
+        self.assertEqual('Notebook', invoice.lines[1].name)
 
     @patch('requests.post', return_value=FakeResponse(''))
     def test_fire(self, mock):
         self.fa.fire_invoice_event(9, 'pay')
 
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json',
-                                     headers={'User-Agent': Fakturoid.user_agent,
+                                     headers={'User-Agent': self.fa.user_agent,
                                               'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
                                               'Content-Type': 'application/json'},
                                      data='{}',
@@ -83,7 +85,7 @@ class InvoiceTestCase(FakturoidTestCase):
 
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json',
                                      data='{}',
-                                     headers={'User-Agent': Fakturoid.user_agent,
+                                     headers={'User-Agent': self.fa.user_agent,
                                               'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
                                               'Content-Type': 'application/json'},
                                      params={'event': 'pay', 'paid_at': '2018-11-19'})
@@ -91,7 +93,10 @@ class InvoiceTestCase(FakturoidTestCase):
     @patch('requests.get', return_value=response('invoices.json'))
     def test_find(self, mock):
         self.fa.invoices()[:10]
-        mock.assert_called_once()
+        mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json',
+                                     headers={'User-Agent': self.fa.user_agent,
+                                              'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c'},
+                                     params={'page': 1})
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json', mock.call_args[0][0])
         # TODO paging test
 

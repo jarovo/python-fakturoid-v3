@@ -1,4 +1,6 @@
-import re
+from __future__ import annotations
+
+from dataclasses import dataclass
 import json
 from datetime import date, datetime
 from functools import wraps
@@ -6,25 +8,25 @@ import base64
 
 import requests
 
-from fakturoid.models import Account, Subject, Invoice, InventoryItem, Generator, Message, Expense
+from fakturoid.model_api import APIResponse, ModelApi
+from fakturoid.models import Model, Account, Subject, Invoice, InventoryItem, Generator, Message, Expense
 from fakturoid.paging import ModelList
+
 
 __all__ = ['Fakturoid']
 
-link_header_pattern = re.compile(r'page=(\d+)[^>]*>; rel="last"')
 
-
-class Fakturoid(object):
+class Fakturoid:
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
-    slug = None
-    client_id = None
-    user_agent = 'python-fakturoid (https://github.com/jarovo/python-fakturoid-v3)'
+    slug: str
+    user_agent: str
+    _models_api: dict[Model, ModelApi]
+
     baseurl = "https://app.fakturoid.cz/api/v3"
-
-    _models_api = None
-
-    def __init__(self, slug:str):
+    
+    def __init__(self, slug:str, user_agent:str):
         self.slug = slug
+        self.user_agent = user_agent
 
         self._models_api = {
             Account: AccountApi(self),
@@ -36,7 +38,7 @@ class Fakturoid(object):
             Message: MessagesApi(self),
         }
 
-        # Hack to expose full seach on subjects as
+        # Hack to expose full search on subjects as
         #
         #     fa.subjects.search()
         #
@@ -142,35 +144,16 @@ class Fakturoid(object):
         """
         mapi.delete(obj)
 
-    def _extract_page_link(self, header):
-        m = link_header_pattern.search(header)
-        if m:
-            return int(m.group(1))
-        return None
-
     def _make_request(self, method, success_status, endpoint, **kwargs):
         url = f'{self.baseurl}/accounts/{self.slug}/{endpoint}.json'
         headers = {'User-Agent': self.user_agent, 'Authorization': self.token['token_type'] + ' ' + self.token['access_token']}
         headers.update(kwargs.pop('headers', {}))
         r = getattr(requests, method)(url, headers=headers, **kwargs)
-        try:
-            json_result = r.json()
-        except Exception:
-            json_result = None
-
-        if r.status_code == success_status:
-            response = {'json': json_result}
-            if 'link' in r.headers:
-                page_count = self._extract_page_link(r.headers['link'])
-                if page_count:
-                    response['page_count'] = page_count
-            return response
-
-        if json_result and "errors" in json_result:
-            raise ValueError(json_result["errors"])
-
         r.raise_for_status()
-        
+    
+        api_response = APIResponse(r)
+        return api_response
+    
     def _get(self, endpoint, params=None):
         return self._make_request('get', 200, endpoint, params=params)
 
@@ -184,44 +167,14 @@ class Fakturoid(object):
         return self._make_request('delete', 204, endpoint)
 
 
-class ModelApi(object):
-    session = None
-    model_type = None
-    endpoint = None
-
-    def __init__(self, session):
-        self.session = session
-
-    def extract_id(self, value):
-        if isinstance(value, int):
-            return value
-        if not isinstance(value, self.model_type):
-            raise TypeError("int or {0} expected".format(self.model_type.__name__.lower()))
-        if not getattr(value, 'id', None):
-            raise ValueError("object wit unassigned id")
-        return value.id
-
-    def unpack(self, response):
-        raw = response['json']
-        if isinstance(raw, list):
-            objects = []
-            for fields in raw:
-                objects.append(self.model_type(**fields))
-            return objects
-        else:
-            return self.model_type(**raw)
-
-
 class CrudModelApi(ModelApi):
-    def load(self, id):
-        if not isinstance(id, int):
-            raise TypeError('id must be int')
+    def load(self, id: int):
         response = self.session._get('{0}/{1}'.format(self.endpoint, id))
-        return self.unpack(response)
+        return self.from_response(response)
 
     def find(self, params={}, endpoint=None):
         response = self.session._get(endpoint or self.endpoint, params=params)
-        return self.unpack(response)
+        return self.from_list_response(response)
 
     def save(self, model):
         if model.id:
@@ -234,13 +187,14 @@ class CrudModelApi(ModelApi):
         id = self.extract_id(model)
         self.session._delete('{0}/{1}'.format(self.endpoint, id))
 
+
 class AccountApi(ModelApi):
     model_type = Account
     endpoint = 'account'
 
     def load(self):
         response = self.session._get(self.endpoint)
-        return self.unpack(response)
+        return self.from_response(response)
 
 
 class SubjectsApi(CrudModelApi):
@@ -261,18 +215,18 @@ class SubjectsApi(CrudModelApi):
             params['custom_id'] = custom_id
         return super(SubjectsApi, self).find(params)
 
-    def search(self, query):
+    def search(self, query: str):
         """Full text search as described in
         https://fakturoid.docs.apiary.io/#reference/subjects/subjects-collection-fulltext-search/fulltextove-vyhledavani-v-kontaktech
         """
         if not isinstance(query, str):
             raise TypeError("'query' parameter must be str")
         response = self.session._get('subjects/search'.format(self.endpoint), {'query': query})
-        return self.unpack(response)
+        return self.from_list_response(response)
 
 
 class InvoicesApi(CrudModelApi):
-    """If number argument is givent returms single Invoice object (or None),
+    """If number argument is given, returns single Invoice object (or None),
     otherwise iterable list of invoices are returned.
     """
     model_type = Invoice
@@ -424,6 +378,7 @@ class GeneratorsApi(CrudModelApi):
 
         return super(GeneratorsApi, self).find(params, endpoint)
 
+
 class InventoryApi(CrudModelApi):
     model_type = InventoryItem
     endpoint = 'inventory_items'
@@ -434,6 +389,7 @@ class InventoryApi(CrudModelApi):
             params['name'] = name
 
         return ModelList(self, self.endpoint, params)
+
 
 class MessagesApi(ModelApi):
     model_type = Message

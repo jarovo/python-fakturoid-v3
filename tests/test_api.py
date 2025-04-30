@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
+import freezegun
 import json
 import unittest
-from datetime import date
+from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from decimal import Decimal
 
@@ -15,15 +16,32 @@ class FakturoidTestCase(unittest.TestCase):
 
     @patch('requests.post', return_value=response("token.json"))
     def setUp(self, mock):
-        self.fa = Fakturoid('myslug', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
-        self.fa.oauth_token_client_credentials_flow(b'client_id', b'client_secret')
+        self.fa = Fakturoid('myslug', 'CLIENT_ID', 'CLIENT_SECRET', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
+        self.fa.oauth_token_client_credentials_flow()
 
 
 class OAuthTestCase(FakturoidTestCase):
+    new_token_request_time = datetime.now()
+    past_token_request_time = new_token_request_time - timedelta(seconds=7200)
+
+    @patch('requests.get', return_value=response('invoices.json'))
     @patch('requests.post', return_value=response('token.json'))
-    def test_oauth_credentials_flow(self, mock):
-        self.fa.oauth_token_client_credentials_flow(b'client_id', b'client_secret')
-        assert self.fa.token
+    def test_oauth_credentials_flow(self, post_mock, get_mock):
+        with freezegun.freeze_time(self.past_token_request_time) as freezer:
+            self.fa.oauth_token_client_credentials_flow()
+            assert self.fa.invoices()
+            assert post_mock.call_count == 1
+            assert get_mock.call_count == 1
+
+            assert self.fa.invoices()
+            assert post_mock.call_count == 1
+            assert get_mock.call_count == 2
+        
+        with freezegun.freeze_time(self.new_token_request_time) as freezer:
+            assert self.fa.renew_token_at < datetime.now()
+            assert self.fa.invoices()
+            assert post_mock.call_count == 2
+            assert get_mock.call_count == 3
 
 
 class AccountTestCase(FakturoidTestCase):

@@ -35,6 +35,11 @@ classifiers = [
     "Topic :: Office/Business :: Financial :: Accounting",
 ]
 
+[project.optional-dependencies]
+test = [
+  "freezegun >= 1.5.1"
+]
+
 [project.urls]
 Homepage = "https://github.com/jarovo/python-fakturoid-v3/"
 Repository = "https://github.com/jarovo/python-fakturoid-v3/"

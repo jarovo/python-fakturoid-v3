@@ -100,7 +100,7 @@ fa.invoices()[-1]   # loads first issued invoice (invoices are ordered from late
 
 <code>Fakturoid.<b>fire_invoice_event(id, event, **args)</b></code>
 
-Fires basic events on invoice. All events are described in [Fakturoid API docs](https://fakturoid.docs.apiary.io/#reference/invoices/invoice-actions/akce-nad-fakturou).
+Fires basic events on invoice. All events are described in [Fakturoid API docs](https://www.fakturoid.cz/api/v3/invoices#invoice-actions).
 
 Pay event can accept optional arguments `paid_at` and `paid_amount`
 ```python
@@ -141,33 +141,6 @@ fa.delete(Subject(id=1234))   # or alternativelly delete is possible without obj
 
 ### Models
 
-All models fields are named same as  [Fakturoid API](https://fakturoid.docs.apiary.io/).
+All models fields are named same as  [Fakturoid API](https://www.fakturoid.cz/api/v3).
 
 Values are mapped to corresponding `int`, `decimal.Decimal`, `datetime.date` and `datetime.datetime` types.
-
-<code>Fakturoid.<b>Account</b></code>
-
-[https://fakturoid.docs.apiary.io/#reference/account](https://fakturoid.docs.apiary.io/#reference/account)
-
-<code>Fakturoid.<b>Subject</b></code>
-
-[https://fakturoid.docs.apiary.io/#reference/subjects](https://fakturoid.docs.apiary.io/#reference/subjects)
-
-<code>Fakturoid.<b>Invoice</b></code><br>
-<code>Fakturoid.<b>InvoiceLine</b></code>
-
-[https://fakturoid.docs.apiary.io/#reference/invoices](https://fakturoid.docs.apiary.io/#reference/invoices)
-
-<code>Fakturoid.<b>Generator</b></code>
-
-[https://fakturoid.docs.apiary.io/#reference/generators](https://fakturoid.docs.apiary.io/#reference/generators)
-
-Use `InvoiceLine` for generator lines
-
-<code>Fakturoid.<b>Message</b></code>
-
-[http://fakturoid.docs.apiary.io/#reference/messages](https://fakturoid.docs.apiary.io/#reference/messages)
-
-<code>Fakturoid.<b>InventoryItems</b></code>
-
-[http://fakturoid.docs.apiary.io/#reference/inventory-items](https://fakturoid.docs.apiary.io/#reference/inventory-items)

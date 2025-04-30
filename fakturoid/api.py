@@ -49,7 +49,7 @@ class Fakturoid:
     client_secret:str
     user_agent: str
     token:str
-    renew_token_at: datetime
+    renew_token_at: datetime = datetime.now()
 
     _models_api: dict[Model, ModelApi]
 

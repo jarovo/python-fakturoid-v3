@@ -120,7 +120,7 @@ Use `recurring=False`/`True` parameter to load recurring or simple templates onl
 
 Create or modify `Subject`, `Invoice` or `Generator`.
 
-To modify or delete inoive lines simply edit `lines`
+To modify or delete invoice lines simply edit `lines`
 
 ```python
 invoice = fa.invoices(number='2014-0002')[0]

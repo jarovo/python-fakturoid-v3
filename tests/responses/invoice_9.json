@@ -50,6 +50,7 @@
   "native_total": "48000.0",
   "lines": [
     {
+      "id": 3,
       "name": "PC",
       "quantity": "1.0",
       "unit_name": "",
@@ -57,7 +58,7 @@
       "vat_rate": 20,
       "with_vat": false
     },
-    {
+    { "id": 4,
       "name": "Notebook",
       "quantity": "1.0",
       "unit_name": "",

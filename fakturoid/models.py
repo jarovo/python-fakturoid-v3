@@ -4,86 +4,42 @@ from typing import Optional
 from decimal import Decimal
 from dateutil.parser import parse
 from pydantic.dataclasses import dataclass
+from pydantic import Field, BaseModel, EmailStr
+
 
 __all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
            'Message', 'Expense']
 
 
-@dataclass
-class Model:
+class Model(BaseModel):
     """Base class for all Fakturoid model objects"""
-
-    def __init__(self, **fields):
-        self.update(fields)
 
     def __unicode__(self):
         return "<{0}:{1}>".format(self.__class__.__name__, self.id)
 
-    def update(self, fields):
-        for field, value in fields.items():
-            if value and isinstance(value, str):
-                if field.endswith('_at'):
-                    fields[field] = parse(value)
-                elif field.endswith('_on') or field.endswith('_due') or field.endswith('_date'):
-                    fields[field] = parse(value).date()
-                elif field in self.Meta.decimal:
-                    fields[field] = Decimal(value)
-        self.__dict__.update(fields)
 
-    def is_field_writable(self, field, value):
-        # if hasattr(self.Meta, 'writable'):
-        #    return field in self.Meta.writable
-        if hasattr(self.Meta, 'readonly'):
-            return field not in self.Meta.readonly
-        return True
-
-    def serialize_field_value(self, field, value):
-        if isinstance(value, Model):
-            return value.get_fields()
-        if isinstance(value, list):
-            nv = []
-            for i, item in enumerate(value):
-                nv.append(self.serialize_field_value('{0}.{1}'.format(field, i), item))
-            return nv
-        if isinstance(value, Decimal):
-            return str(value)
-        if hasattr(value, 'isoformat'):
-            return value.isoformat()
-        return value
-
-    def get_fields(self):
-        data = {}
-        for field, value in self.__dict__.items():
-            if self.is_field_writable(field, value):
-                data[field] = self.serialize_field_value(field, value)
-        return data
+class Unique(BaseModel):
+    id: Optional[int] = Field(export=False)
 
 
-@dataclass
-class Unique:
-    id: int
-
-
-@dataclass
 class Account(Model):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
-    invoice_email: str
+    invoice_email: EmailStr
     registration_no: Optional[str]
 
     class Meta:
         decimal = []
 
 
-@dataclass
 class Subject(Model, Unique):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
-    registration_no: Optional[str]
+    registration_no: Optional[str] = None
     updated_at: datetime
 
     class Meta:
-        readonly = ['id', 'avatar_url', 'html_url', 'url', 'updated_at']
+        readonly = ['avatar_url', 'html_url', 'url', 'updated_at']
         decimal = []
 
     def __unicode__(self):
@@ -99,20 +55,15 @@ class Inventory:
     move_id: int
 
 
-@dataclass
-class Line(Model):
+class Line(Unique):
     name: str
-    unit_price: Decimal
     quantity: Decimal
     unit_name: Optional[str]
+    unit_price: Decimal
 
     class Meta:
         readonly = []  # no id here, to correct update
         decimal = ['quantity', 'unit_price']
-
-    def __init__(self, **kwargs):
-        self.quantity = Decimal(1)
-        super(Line, self).__init__(**kwargs)
 
     def __unicode__(self):
         if self.unit_name:
@@ -124,44 +75,15 @@ class Line(Model):
                 return "{0} {1}".format(self.quantity, self.name)
 
 
-@dataclass
 class AbstractInvoice(Model, Unique):
     lines: list[Line]
     _loaded_lines = []  # keep loaded data to be able delete removed lines
 
-    def update(self, fields):
-        if 'lines' in fields:
-            self.lines = []
-            self._loaded_lines = []
-            for line in fields.pop('lines'):
-                if not isinstance(line, Line):
-                    if 'id' in line:
-                        self._loaded_lines.append(line)
-                    line = self.line_model(**line)
-                self.lines.append(line)
-        super(AbstractInvoice, self).update(fields)
 
-    def serialize_field_value(self, field, value):
-        result = super(AbstractInvoice, self).serialize_field_value(field, value)
-        if field == 'lines':
-            ids = map(lambda l: l.get('id'), result)
-            for remote in self._loaded_lines:
-                if remote['id'] not in ids:
-                    remote['_destroy'] = True
-                    result.append(remote)
-        return result
-
-    def is_field_writable(self, field, value):
-        if field.startswith('your_') or field.startswith('client_'):
-            return False
-        return super(AbstractInvoice, self).is_field_writable(field, value)
-
-
-@dataclass
 class Invoice(AbstractInvoice):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
 
-    number: str
+    number: Optional[str]
 
     class Meta:
         readonly = [
@@ -182,7 +104,6 @@ class Invoice(AbstractInvoice):
         return self.number
 
 
-@dataclass
 class InventoryItem(Model, Unique):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
@@ -197,7 +118,6 @@ class InventoryItem(Model, Unique):
         return self.name
 
 
-@dataclass
 class Expense(AbstractInvoice):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
 
@@ -220,11 +140,9 @@ class Expense(AbstractInvoice):
         return self.number
 
 
-@dataclass
 class Generator(Model):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
-    line_model = Line
 
     class Meta:
         readonly = [
@@ -237,7 +155,6 @@ class Generator(Model):
         return self.name
 
 
-@dataclass
 class Message(Model):
     """See http://docs.fakturoid.apiary.io/#reference/messages for complete field reference."""
     subject: str

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-import json
+from typing import Optional
 from datetime import date, datetime
 from functools import wraps
 import base64
@@ -10,7 +10,7 @@ import base64
 import requests
 
 from fakturoid.model_api import ModelApi
-from fakturoid.models import Model, Account, Subject, Invoice, InventoryItem, Generator, Message, Expense
+from fakturoid.models import Model, Account, Subject, Invoice, InventoryItem, Generator, Message, Expense, Unique
 from fakturoid.paging import ModelList
 
 
@@ -80,12 +80,12 @@ class Fakturoid:
     def model_api(model_type=None):
         def wrap(fn):
             @wraps(fn)
-            def wrapper(self, *args, **kwargs):
-                mt = model_type or type(args[0])
-                mapi = self._models_api.get(mt)
-                if not mapi:
+            def wrapper(self: Fakturoid, *args, **kwargs):
+                mt: Model = model_type or type(args[0])
+                model_api = self._models_api.get(mt)
+                if not model_api:
                     raise TypeError('model expected, got {0}'.format(mt.__name__))
-                return fn(self, mapi, *args, **kwargs)
+                return fn(self, model_api, *args, **kwargs)
             return wrapper
         return wrap
 
@@ -157,7 +157,7 @@ class Fakturoid:
         return mapi.find(*args, **kwargs)
 
     @model_api()
-    def save(self, mapi, obj, **kwargs):
+    def save(self, mapi: CrudModelApi, obj, **kwargs):
         mapi.save(obj, **kwargs)
 
     @model_api()
@@ -183,11 +183,18 @@ class Fakturoid:
     def _get(self, endpoint, params=None):
         return self._make_request('get', 200, endpoint, params=params)
 
-    def _post(self, endpoint, data, params=None):
-        return self._make_request('post', 201, endpoint, headers={'Content-Type': 'application/json'}, data=json.dumps(data), params=params)
+    def _post(self, endpoint, data: Optional[Model]=None, params=None):
+        if data:
+            return self._make_request('post', 201, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json(), params=params)
+        else:
+            return self._make_request('post', 201, endpoint, params=params)
 
-    def _put(self, endpoint, data):
-        return self._make_request('put', 200, endpoint, headers={'Content-Type': 'application/json'}, data=json.dumps(data))
+
+    def _put(self, endpoint, data: Optional[Model] = None):
+        if data:
+            return self._make_request('put', 200, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json())
+        else:
+            return self._make_request('put', 200, endpoint)
 
     def _delete(self, endpoint):
         return self._make_request('delete', 204, endpoint)
@@ -202,16 +209,15 @@ class CrudModelApi(ModelApi):
         response = self.session._get(endpoint or self.endpoint, params=params)
         return self.from_list_response(response)
 
-    def save(self, model):
-        if model.id:
-            result = self.session._put('{0}/{1}'.format(self.endpoint, model.id), model.get_fields())
+    def save(self, obj: Model|Unique):
+        if obj.id:
+            result = self.session._put('{0}/{1}'.format(self.endpoint, obj.id), obj)
         else:
-            result = self.session._post(self.endpoint, model.get_fields())
-        model.update(result['json'])
+            result = self.session._post(self.endpoint, obj)
+        return self.from_response(result)
 
-    def delete(self, model):
-        id = self.extract_id(model)
-        self.session._delete('{0}/{1}'.format(self.endpoint, id))
+    def delete(self, model: Unique):
+        self.session._delete('{0}/{1}'.format(self.endpoint, model.id))
 
 
 class AccountApi(ModelApi):
@@ -283,7 +289,7 @@ class InvoicesApi(CrudModelApi):
                 raise TypeError("'paid_at' argument must be date")
             params['paid_at'] = params['paid_at'].isoformat()
 
-        self.session._post('invoices/{0}/fire'.format(invoice_id), {}, params=params)
+        self.session._post('invoices/{0}/fire'.format(invoice_id), params=params)
 
     def find(self, proforma=None, subject_id=None, since=None, updated_since=None, number=None, status=None, custom_id=None):
         params = {}
@@ -350,7 +356,7 @@ class ExpensesApi(CrudModelApi):
                 raise TypeError("'paid_on' argument must be date")
             params['paid_on'] = params['paid_on'].isoformat()
 
-        self.session._post('expenses/{0}/fire'.format(expense_id), {}, params=params)
+        self.session._post('expenses/{0}/fire'.format(expense_id), params=params)
 
     def find(self, subject_id=None, since=None, updated_since=None, number=None, status=None, custom_id=None, variable_symbol=None):
         params = {}

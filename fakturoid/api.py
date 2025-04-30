@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from typing import Optional
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from functools import wraps
 import base64
 
@@ -45,15 +45,22 @@ class APIResponse:
 class Fakturoid:
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
     slug: str
+    client_id:str
+    client_secret:str
     user_agent: str
+    token:str
+    renew_token_at: datetime
+
     _models_api: dict[Model, ModelApi]
 
     baseurl = "https://app.fakturoid.cz/api/v3"
     
-    def __init__(self, slug:str, user_agent:str):
+    def __init__(self, slug:str, client_id:str, client_secret: str, user_agent:str):
         self.slug = slug
         self.user_agent = user_agent
-
+        self.client_id = client_id
+        self.client_secret = client_secret
+        
         self._models_api = {
             Account: AccountApi(self),
             Subject: SubjectsApi(self),
@@ -89,15 +96,15 @@ class Fakturoid:
             return wrapper
         return wrap
 
-    def oauth_token_client_credentials_flow(self, client_id:bytes, client_secret:bytes):
-        credentials = base64.urlsafe_b64encode(b':'.join((client_id, client_secret)))
+    def oauth_token_client_credentials_flow(self):
+        credentials = base64.urlsafe_b64encode(b':'.join((self.client_id.encode('utf-8'), self.client_secret.encode('utf-8'))))
         headers={'Accept': 'application/json',
                  'User-Agent': self.user_agent,
                  'Authorization': b'Basic ' + credentials}
         resp = requests.post(f'{self.baseurl}/oauth/token', headers=headers, data={"grant_type": "client_credentials"})
         resp.raise_for_status()
         self.token = resp.json()
-        # TODO handle token expiration.
+        self.renew_token_at = datetime.now() + timedelta(seconds=self.token['expires_in'] / 2)
 
     def account(self):
         return self._models_api[Account].load()
@@ -171,6 +178,9 @@ class Fakturoid:
         mapi.delete(obj)
 
     def _make_request(self, method, success_status, endpoint, **kwargs):
+        if datetime.now() > self.renew_token_at:
+            self.oauth_token_client_credentials_flow()
+
         url = f'{self.baseurl}/accounts/{self.slug}/{endpoint}.json'
         headers = {'User-Agent': self.user_agent, 'Authorization': self.token['token_type'] + ' ' + self.token['access_token']}
         headers.update(kwargs.pop('headers', {}))

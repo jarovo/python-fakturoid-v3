@@ -27,8 +27,8 @@ Create context:
 ```python
 from fakturoid import Fakturoid
 
-fa = Fakturoid('yourslug')
-fa.oauth_token_client_credentials_flow('YourApp', b'CLIENT_ID', b'CLIENT_SECRET')
+fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
+fa.oauth_token_client_credentials_flow()
 ```
 
 Print 25 regular invoices in year 2013:

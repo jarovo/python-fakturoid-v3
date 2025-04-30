@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fakturoid-v3"
-version = "2025.1.0"
+version = "0.1.0"
 dependencies = [
   "pydantic >= 2.0",
   "pydantic[email]",
@@ -25,12 +25,10 @@ license = "MIT"
 license-files = ["LICEN[CS]E.*"]
 keywords = ["fakturoid", "accounting"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 1 - Planning",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 2.6",
-    "Programming Language :: Python :: 2.7",
     "Programming Language :: Python :: 3",
     "Topic :: Office/Business :: Financial :: Accounting",
 ]

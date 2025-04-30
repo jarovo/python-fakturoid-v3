@@ -11,7 +11,7 @@ dependencies = [
   "requests",
   "python-dateutil"
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
   {name = "Roman Krejcik", email = "farin@farin.cz"},
   {name = "Jaroslav Henner", email = "jaroslav.henner@gmail.com"},

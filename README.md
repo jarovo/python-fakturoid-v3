@@ -16,8 +16,7 @@ or alternatively install development version directly from github
     pip install -e git+git://github.com/jarovo/python-fakturoid-v3#egg=fakturoid-v3
 
 
-Supported Python versions are 2.6+ and 3.x. Dependencies are [requests](https://pypi.python.org/pypi/requests),
-[python-dateutil](https://pypi.python.org/pypi/python-dateutil/2.1)
+Tested with Python >= 3.9
 
 ## Quickstart
 

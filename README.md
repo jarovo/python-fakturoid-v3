@@ -3,7 +3,7 @@
 The Python interface to online accounting service [Fakturoid](http://fakturoid.cz/) using Faktiuroid's v3 api.
 
 This library is developed and maintained by Jaroslav Henner ([jaroslav.henner@gmail.com](mailto:jaroslav.henner@gmail.com)).
-It is unoficial and no support from Fakturoid team can be claimed.
+
 
 ## Installation
 
@@ -18,36 +18,32 @@ or alternatively install development version directly from github
 
 Tested with Python >= 3.9
 
+
 ## Quickstart
 
 Generate the Client ID and Client Secret from your Fakturoid user screen: Settings → User account.
 
-Create context:
-```python
+```python fixture:isolation
 from fakturoid import Fakturoid
 
 fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
-fa.oauth_token_client_credentials_flow()
 ```
 
 Print 25 regular invoices in year 2013:
-```python
+```python continuation
+from fakturoid import Fakturoid, Invoice, Line
 from datetime import date
 
-for invoice in fa.invoices(proforma=False, since=date(2013,1,1))[:25]:
-    print(invoice.number, invoice.total)
-```
+fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
 
-Delete subject with id 27:
-```python
+for invoice in fa.invoices(proforma=False, since=date(2013, 1, 1))[:25]:
+    print(invoice.number, invoice.total)
+
+# Delete subject with id 27:
 subject = fa.subject(27)
 fa.delete(subject)
-```
 
-And finally create new invoice:
-```python
-from fakturoid import Invoice, InvoiceLine
-
+# And finally create new invoice:
 invoice = Invoice(
     subject_id=28,
     number='2013-0108',
@@ -56,9 +52,15 @@ invoice = Invoice(
     taxable_fulfillment_due=date(2012, 3, 30),
     lines=[
         # use Decimal or string for floating values
-        InvoiceLine(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20),
-        InvoiceLine(name='Soft material', quantity=12, unit_name='ks', unit_price="4.60", vat_rate=20),
-    ]
+        Line(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20),
+        Line(
+            name='Soft material',
+            quantity=12,
+            unit_name='ks',
+            unit_price="4.60",
+            vat_rate=20,
+        ),
+    ],
 )
 fa.save(invoice)
 
@@ -94,8 +96,13 @@ Use `proforma=False`/`True` parameter to load regular or proforma invoices only.
 
 Returns list of invoices. Invoices are lazily loaded according to slicing.
 ```python
-fa.invoices(status='paid')[:100]   # loads 100 paid invoices
-fa.invoices()[-1]   # loads first issued invoice (invoices are ordered from latest to first)
+from fakturoid import Fakturoid
+
+fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
+fa.invoices(status='paid')[:100]  # loads 100 paid invoices
+fa.invoices()[
+    -1
+]  # loads first issued invoice (invoices are ordered from latest to first)
 ```
 
 <code>Fakturoid.<b>fire_invoice_event(id, event, **args)</b></code>
@@ -104,6 +111,10 @@ Fires basic events on invoice. All events are described in [Fakturoid API docs](
 
 Pay event can accept optional arguments `paid_at` and `paid_amount`
 ```python
+from fakturoid import Fakturoid
+from datetime import date
+
+fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
 fa.fire_invoice_event(11331402, 'pay', paid_at=date(2018, 11, 17), paid_amount=2000)
 ```
 
@@ -122,8 +133,11 @@ Create or modify `Subject`, `Invoice` or `Generator`.
 To modify or delete invoice lines simply edit `lines`
 
 ```python
+from fakturoid import Fakturoid
+
+fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
 invoice = fa.invoices(number='2014-0002')[0]
-invoice.lines[0].unit_price = 5000 # edit first item
+invoice.lines[0].unit_price = 5000  # edit first item
 del invoice.lines[-1]  # delete last item
 fa.save(invoice)
 ```
@@ -133,8 +147,11 @@ fa.save(invoice)
 Delete `Subject`, `Invoice` or `Generator`.
 
 ```python
+from fakturoid import Fakturoid
+
+fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
 subj = fa.subject(1234)
-fa.delete(subj)            # delete subject
+fa.delete(subj)  # delete subject
 
 fa.delete(Subject(id=1234))   # or alternativelly delete is possible without object loading
 ```

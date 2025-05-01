@@ -147,13 +147,14 @@ fa.save(invoice)
 Delete `Subject`, `Invoice` or `Generator`.
 
 ```python
-from fakturoid import Fakturoid
+from fakturoid import Fakturoid, Subject
 
 fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
 subj = fa.subject(1234)
 fa.delete(subj)  # delete subject
 
-fa.delete(Subject(id=1234))   # or alternativelly delete is possible without object loading
+# or alternativelly delete is possible without object loading
+fa.delete(Subject(id=1234))
 ```
 
 ### Models

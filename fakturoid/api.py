@@ -54,13 +54,13 @@ class Fakturoid:
     _models_api: dict[Model, ModelApi]
 
     baseurl = "https://app.fakturoid.cz/api/v3"
-    
+
     def __init__(self, slug:str, client_id:str, client_secret: str, user_agent:str):
         self.slug = slug
         self.user_agent = user_agent
         self.client_id = client_id
         self.client_secret = client_secret
-        
+
         self._models_api = {
             Account: AccountApi(self),
             Subject: SubjectsApi(self),
@@ -186,10 +186,10 @@ class Fakturoid:
         headers.update(kwargs.pop('headers', {}))
         r = getattr(requests, method)(url, headers=headers, **kwargs)
         r.raise_for_status()
-    
+
         api_response = APIResponse(r)
         return api_response
-    
+
     def _get(self, endpoint, params=None):
         return self._make_request('get', 200, endpoint, params=params)
 

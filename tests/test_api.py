@@ -36,7 +36,7 @@ class OAuthTestCase(FakturoidTestCase):
             assert self.fa.invoices()
             assert post_mock.call_count == 1
             assert get_mock.call_count == 2
-        
+
         with freezegun.freeze_time(self.new_token_request_time) as freezer:
             assert self.fa.renew_token_at < datetime.now()
             assert self.fa.invoices()

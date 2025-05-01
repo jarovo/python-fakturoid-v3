@@ -10,7 +10,7 @@ import base64
 import requests
 
 from fakturoid.model_api import ModelApi
-from fakturoid.models import Model, Account, Subject, Invoice, InventoryItem, Generator, Message, Expense, Unique
+from fakturoid.models import Model, Account, BankAccount, Subject, Invoice, InventoryItem, Generator, Message, Expense, Unique
 from fakturoid.paging import ModelList
 
 
@@ -63,6 +63,7 @@ class Fakturoid:
 
         self._models_api = {
             Account: AccountApi(self),
+            BankAccount: BankAccountsApi(self),
             Subject: SubjectsApi(self),
             Invoice: InvoicesApi(self),
             InventoryItem: InventoryApi(self),
@@ -89,9 +90,7 @@ class Fakturoid:
             @wraps(fn)
             def wrapper(self: Fakturoid, *args, **kwargs):
                 mt: Model = model_type or type(args[0])
-                model_api = self._models_api.get(mt)
-                if not model_api:
-                    raise TypeError('model expected, got {0}'.format(mt.__name__))
+                model_api = self._models_api[mt]
                 return fn(self, model_api, *args, **kwargs)
             return wrapper
         return wrap
@@ -108,6 +107,10 @@ class Fakturoid:
 
     def account(self):
         return self._models_api[Account].load()
+
+    @model_api(BankAccount)
+    def bank_account(self, mapi):
+        return mapi.find()
 
     @model_api(Subject)
     def subject(self, mapi, id):
@@ -235,6 +238,15 @@ class AccountApi(ModelApi):
     endpoint = 'account'
 
     def load(self):
+        response = self.session._get(self.endpoint)
+        return self.from_response(response)
+
+
+class BankAccountsApi(ModelApi):
+    model_type = BankAccount
+    endpoint = 'account'
+
+    def find(self):
         response = self.session._get(self.endpoint)
         return self.from_response(response)
 

@@ -1,14 +1,18 @@
-import dataclasses
+from enum import Enum
 from datetime import datetime
 from typing import Optional
 from decimal import Decimal
 from dateutil.parser import parse
 from pydantic.dataclasses import dataclass
-from pydantic import Field, BaseModel, EmailStr
+from pydantic import Field, BaseModel, EmailStr, AnyUrl
 
 
 __all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
            'Message', 'Expense']
+
+
+class StrEnum(str, Enum):
+    pass
 
 
 class Model(BaseModel):
@@ -18,18 +22,121 @@ class Model(BaseModel):
         return "<{0}:{1}>".format(self.__class__.__name__, self.id)
 
 
+
 class Unique(BaseModel):
     id: Optional[int] = Field(export=False)
 
 
+
+
+class VATMode(StrEnum):
+    VATPayer = 'vat_payer'
+    NonVATPayer = 'non_vat_payer'
+    IdentifiedPerson = 'identified_person'
+
+
+class VATPriceMode(StrEnum):
+    WithVAT = 'with_vat'
+    WithoutVAT = 'without_vat'
+    NumericalWithVAT = 'numerical_with_vat'
+    FromTotalWithVAT = 'from_total_with_vat'
+
+
+class Language(StrEnum):
+    CZ = 'cz'
+    SK = 'SK'
+    EN = 'EN'
+    DE = 'DE'
+    FR = 'FR'
+    IT = 'IT'
+    ES = 'ES'
+    RU = 'RU'
+    PL = 'PL'
+    HU = 'HU'
+    RO = 'RO'
+
+
+class InvoicePaymentMethod(StrEnum):
+    Bank = 'bank'
+    Card = 'card'
+    Cash = 'cash'
+    COD = 'cod'
+    PayPal = 'paypal'
+
+
+class HidingPaymentTypes(StrEnum):
+    Card = 'card'
+    Cash = 'cash'
+    Cod = 'cod'
+    PayPal = 'paypal'
+
+
+class DefaultEstimate(StrEnum):
+    estimate = "estimate"
+    quote = "quote"
+
+
 class Account(Model):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-    name: str
-    invoice_email: EmailStr
-    registration_no: Optional[str]
+    subdomain: Optional[str] = None
+    plan: Optional[str] = None
+    plan_price: Optional[Decimal] = None
+    plan_paid_users : Optional[int] = None
+    invoice_email: Optional[str] = None
+    name: Optional[str] = None
+    invoice_email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    web: Optional[AnyUrl] = None
+    name: Optional[str] = None
+    full_name: Optional[str] = None
+    registration_no: Optional[str] = None
+    vat_no: Optional[str] = None
+    local_vat_no: Optional[str] = None
+    vat_mode: Optional[VATMode] = None
+    vat_price_mode: Optional[VATPriceMode] = None
+    street: Optional[str] = None
+    city: Optional[str] = None
+    zip: Optional[str] = None
+    country: Optional[str] = None
+    currency: Optional[str] = None
+    unit_name: Optional[str] = None
+    vat_rate: Optional[int] = None
+    displayed_note: Optional[str] = None
+    invoice_note: Optional[str] = None
+    due: Optional[int] = None
+    invoice_language: Optional[Language] = None
+    invoice_payment_method: Optional[InvoicePaymentMethod] = None
+    invoice_proforma: Optional[bool] = None
+    invoice_hide_bank_account_for_payments: Optional[set[HidingPaymentTypes]] = None
+    fixed_exchange_rate: Optional[bool] = None
+    invoice_selfbilling: Optional[bool] = None
+    default_estimate_type: Optional[DefaultEstimate] = None
+    send_overdue_email: Optional[bool] = None
+    overdue_email_days: Optional[int] = None
+    send_repeated_reminders: Optional[bool] = None
+    send_invoice_from_proforma_email: Optional[bool] = None
+    send_thank_you_email: Optional[bool] = None
+    invoice_paypal: Optional[bool] = None
+    invoice_gopay: Optional[bool] = None
+    digitoo_enabled: Optional[bool] = None
+    digitoo_auto_processing_enabled: Optional[bool] = None
+    digitoo_extractions_remaining: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
-    class Meta:
-        decimal = []
+
+class BankAccount(Unique):
+    name: Optional[str] = None
+    currency: Optional[str] = None
+    number: Optional[str] = None
+    iban: Optional[str] = None
+    swift_bic: Optional[str] = None
+    pairing:  Optional[bool] = None
+    expense_pairing: Optional[bool] = None
+    payment_adjustment: Optional[bool] = None
+    default: Optional[bool] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 class Subject(Model, Unique):

@@ -1,23 +1,26 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Optional, Final
 from datetime import date, datetime, timedelta
 from functools import wraps
 import base64
+import logging
 
 import requests
 
 from fakturoid.model_api import ModelApi
-from fakturoid.models import Model, Account, BankAccount, Subject, Invoice, InventoryItem, Generator, Message, Expense, Unique
+from fakturoid.models import Model, Account, User, BankAccount, Subject, Invoice, InventoryItem, Generator, Message, Expense, Unique
 from fakturoid.paging import ModelList
-
+from fakturoid.strenum import StrEnum
 
 __all__ = ['Fakturoid']
 
 
-LINK_HEADER_PATTERN = re.compile(r'page=(\d+)[^>]*>; rel="last"')
+LOGGER: Final = logging.getLogger("python-fakturoid-v3")
+LINK_HEADER_PATTERN: Final = re.compile(r'page=(\d+)[^>]*>; rel="last"')
+
 
 def extract_page_link(header):
     m = LINK_HEADER_PATTERN.search(header)
@@ -42,14 +45,72 @@ class APIResponse:
             return None
 
 
+class RequestMethod(StrEnum):
+    Get = "get"
+    Post = "post"
+    Put = "put"
+    Delete = "delete"
+
+
+@dataclass
+class APIRequest:
+    method: RequestMethod
+    expected_response_code: int
+    baseurl: str
+    endpoint: str
+    slug: str = None
+    headers: dict[str, str] = field(default_factory=dict)
+    params: dict[str, str] = field(default_factory=dict)
+    data: Model = None
+    api_response: APIResponse = field(init=False, default=None)
+
+    @property
+    def url(self):
+        if self.slug:
+            return f'{self.baseurl}/accounts/{self.slug}/{self.endpoint}.json'
+        else:
+            return f'{self.baseurl}/{self.endpoint}.json'
+
+    def send(self):
+        LOGGER.debug(f'Sending request {self}')
+
+        lib_response: requests.Response = getattr(requests, self.method.value)(self.url, headers=self.headers, params=self.params, data=self.data)
+        lib_response.raise_for_status()
+
+        if lib_response.status_code != self.expected_response_code:
+            LOGGER.warning(f"Expected response code: {self.expected_response_code}, got f{lib_response.status_code} for request {self}")
+
+        self.api_response = APIResponse(lib_response)
+        return self.api_response
+
+    def set_authorization(self, user_agent: str, jwt_token: JWTToken):
+        self.headers.update({'User-Agent': user_agent, 'Authorization': jwt_token.token_type + ' ' + jwt_token.access_token})
+
+
+class JWTToken(Model):
+    token_type: str
+    access_token: str
+    expires_in: timedelta = field(default_factory=lambda x: timedelta(seconds=int(x)))
+    created_at: datetime = field(default_factory=lambda: datetime.now())
+
+    @property
+    def to_be_renewed(self):
+        """ Token is to be renewed sooner than it expires to provide a buffer time for the renewal. """
+        return datetime.now() >= self.created_at + self.expires_in / 2
+
+    @property
+    def is_expired(self):
+        """ Returns False when token is expired. """
+        return datetime.now() >= self.created_at + self.expires_in
+
+
 class Fakturoid:
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
     slug: str
-    client_id:str
-    client_secret:str
+    client_id: str
+    client_secret: str
     user_agent: str
-    token:str
-    renew_token_at: datetime = datetime.now()
+    _token: JWTToken = JWTToken(token_type='Bearer', access_token='', expires_in=-1)   # Dummy expired token needing automatic renewal.
 
     _models_api: dict[Model, ModelApi]
 
@@ -63,6 +124,7 @@ class Fakturoid:
 
         self._models_api = {
             Account: AccountApi(self),
+            User: UserApi(self),
             BankAccount: BankAccountsApi(self),
             Subject: SubjectsApi(self),
             Invoice: InvoicesApi(self),
@@ -95,6 +157,11 @@ class Fakturoid:
             return wrapper
         return wrap
 
+    def ensure_token(self):
+        if self._token.to_be_renewed:
+            self.oauth_token_client_credentials_flow()
+        return self._token
+
     def oauth_token_client_credentials_flow(self):
         credentials = base64.urlsafe_b64encode(b':'.join((self.client_id.encode('utf-8'), self.client_secret.encode('utf-8'))))
         headers={'Accept': 'application/json',
@@ -102,8 +169,7 @@ class Fakturoid:
                  'Authorization': b'Basic ' + credentials}
         resp = requests.post(f'{self.baseurl}/oauth/token', headers=headers, data={"grant_type": "client_credentials"})
         resp.raise_for_status()
-        self.token = resp.json()
-        self.renew_token_at = datetime.now() + timedelta(seconds=self.token['expires_in'] / 2)
+        self._token = JWTToken(**resp.json())
 
     def account(self):
         return self._models_api[Account].load()
@@ -166,6 +232,18 @@ class Fakturoid:
     def inventory_items(self, mapi, *args, **kwargs):
         return mapi.find(*args, **kwargs)
 
+    @model_api(InventoryItem)
+    def inventory_items(self, mapi, *args, **kwargs):
+        return mapi.find(*args, **kwargs)
+
+    @model_api(User)
+    def current_user(self, mapi):
+        return mapi.current_user()
+
+    @model_api(User)
+    def users(self, mapi):
+        return mapi.list_users()
+
     @model_api()
     def save(self, mapi: CrudModelApi, obj, **kwargs):
         mapi.save(obj, **kwargs)
@@ -180,17 +258,16 @@ class Fakturoid:
         """
         mapi.delete(obj)
 
-    def _make_request(self, method, success_status, endpoint, **kwargs):
-        if datetime.now() > self.renew_token_at:
-            self.oauth_token_client_credentials_flow()
+    def _make_request(self, method, success_status, endpoint, headers = None, params=None, data=None):
+        jwt_token = self.ensure_token()
+        user_agent = self.user_agent
 
-        url = f'{self.baseurl}/accounts/{self.slug}/{endpoint}.json'
-        headers = {'User-Agent': self.user_agent, 'Authorization': self.token['token_type'] + ' ' + self.token['access_token']}
-        headers.update(kwargs.pop('headers', {}))
-        r = getattr(requests, method)(url, headers=headers, **kwargs)
-        r.raise_for_status()
+        params = params or {}
+        headers = headers or {}
 
-        api_response = APIResponse(r)
+        api_request = APIRequest(RequestMethod(method), success_status, self.baseurl, endpoint, self.slug, headers, params, data)
+        api_request.set_authorization(user_agent, jwt_token)
+        api_response = api_request.send()
         return api_response
 
     def _get(self, endpoint, params=None):
@@ -242,13 +319,27 @@ class AccountApi(ModelApi):
         return self.from_response(response)
 
 
+class UserApi(ModelApi):
+    model_type = User
+
+    def current_user(self):
+        req = APIRequest(RequestMethod.Get, 200, self.session.baseurl, 'user')
+        req.set_authorization(self.session.user_agent, self.session.ensure_token())
+        response = req.send()
+        return self.from_response(response)
+
+    def list_users(self, params={}):
+        response = self.session._get('users', params=params)
+        return self.from_list_response(response)
+
+
 class BankAccountsApi(ModelApi):
     model_type = BankAccount
-    endpoint = 'account'
+    endpoint = 'bank_accounts'
 
     def find(self):
         response = self.session._get(self.endpoint)
-        return self.from_response(response)
+        return self.from_list_response(response)
 
 
 class SubjectsApi(CrudModelApi):

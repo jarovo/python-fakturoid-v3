@@ -1,4 +1,3 @@
-from enum import Enum
 from datetime import datetime
 from typing import Optional
 from decimal import Decimal
@@ -6,13 +5,11 @@ from dateutil.parser import parse
 from pydantic.dataclasses import dataclass
 from pydantic import Field, BaseModel, EmailStr, AnyUrl
 
+from fakturoid.strenum import StrEnum
+
 
 __all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
            'Message', 'Expense']
-
-
-class StrEnum(str, Enum):
-    pass
 
 
 class Model(BaseModel):
@@ -27,6 +24,10 @@ class Unique(BaseModel):
     id: Optional[int] = Field(export=False)
 
 
+class AllowedScope(StrEnum):
+    Reports = "reports"
+    Expenses = "expenses"
+    Invoices = "invoices"
 
 
 class VATMode(StrEnum):
@@ -123,6 +124,25 @@ class Account(Model):
     digitoo_extractions_remaining: Optional[int] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+class UserAccount(Model):
+    slug: str = None
+    logo: Optional[AnyUrl] = None
+    name: str = None
+    registration_no: str = None
+    permission: str = None
+    allowed_scope: set[AllowedScope] = None
+
+
+class User(Unique):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    avatar_url: Optional[AnyUrl] = None
+    default_account: Optional[str] = None
+    permission: Optional[str] = None
+    allowed_scope: set[AllowedScope] = None
+    accounts: list[UserAccount] = None
 
 
 class BankAccount(Unique):

@@ -21,14 +21,16 @@ class FakturoidTestCase(unittest.TestCase):
 
 
 class OAuthTestCase(FakturoidTestCase):
-    new_token_request_time = datetime.now()
+    new_token_request_time = datetime.fromisoformat('2025-05-01 18:50:00')
     past_token_request_time = new_token_request_time - timedelta(seconds=7200)
 
     @patch('requests.get', return_value=response('invoices.json'))
     @patch('requests.post', return_value=response('token.json'))
     def test_oauth_credentials_flow(self, post_mock, get_mock):
-        with freezegun.freeze_time(self.past_token_request_time) as freezer:
+        with freezegun.freeze_time(self.past_token_request_time):
             self.fa.oauth_token_client_credentials_flow()
+            # Time is the time of token expiration
+            assert self.fa._token.to_be_renewed == False
             assert self.fa.invoices()
             assert post_mock.call_count == 1
             assert get_mock.call_count == 1
@@ -37,8 +39,8 @@ class OAuthTestCase(FakturoidTestCase):
             assert post_mock.call_count == 1
             assert get_mock.call_count == 2
 
-        with freezegun.freeze_time(self.new_token_request_time) as freezer:
-            assert self.fa.renew_token_at < datetime.now()
+        with freezegun.freeze_time(self.new_token_request_time):
+            assert self.fa._token.to_be_renewed == True
             assert self.fa.invoices()
             assert post_mock.call_count == 2
             assert get_mock.call_count == 3
@@ -95,7 +97,8 @@ class InvoiceTestCase(FakturoidTestCase):
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json',
                                      headers={'User-Agent': self.fa.user_agent,
                                               'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c'},
-                                     params={'event': 'pay'})
+                                     params={'event': 'pay'},
+                                     data=None)
 
     get_response_text = '{"id":1,"lines":[{"id":1000,"name":"Nails","quantity":"10","unit_name":"ks","unit_price":"1.2"}],"number":"2025-01-01"}'
     new_response_text = '{"id":1,"lines":[{"id":1000,"name":"Wire","quantity":"10","unit_name":"meter","unit_price":"13.2"}],"number":"2025-01-01"}'
@@ -103,21 +106,23 @@ class InvoiceTestCase(FakturoidTestCase):
     @patch('requests.put', return_value=FakeResponse(new_response_text))
     def test_save_update_line(self, put_mock, get_mock):
         invoice = self.fa.invoice(1)
+        get_mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/1.json',
+                                headers={'User-Agent': self.fa.user_agent,
+                                        'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
+                                },
+                                params={},
+                                data=None)
+
         invoice.lines[0].name = "Wire"
         invoice.lines[0].unit_name = "meter"
         invoice.lines[0].unit_price = Decimal("13.2")
+
         self.fa.save(invoice)
-
-        get_mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/1.json',
-                                     headers={'User-Agent': self.fa.user_agent,
-                                              'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
-                                     },
-                                     params=None)
-
         put_mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/1.json',
                                      headers={'User-Agent': self.fa.user_agent,
                                               'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
                                               'Content-Type': 'application/json'},
+                                     params={},
                                      data=self.new_response_text)
 
 
@@ -128,7 +133,8 @@ class InvoiceTestCase(FakturoidTestCase):
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json',
                                      headers={'User-Agent': self.fa.user_agent,
                                               'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c'},
-                                     params={'event': 'pay', 'paid_at': '2018-11-19'})
+                                     params={'event': 'pay', 'paid_at': '2018-11-19'},
+                                     data=None)
 
     @patch('requests.get', return_value=response('invoices.json'))
     def test_find(self, mock):
@@ -136,7 +142,8 @@ class InvoiceTestCase(FakturoidTestCase):
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json',
                                      headers={'User-Agent': self.fa.user_agent,
                                               'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c'},
-                                     params={'page': 1})
+                                     params={'page': 1},
+                                     data=None)
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json', mock.call_args[0][0])
         # TODO paging test
 

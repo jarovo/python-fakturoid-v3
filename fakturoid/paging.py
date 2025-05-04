@@ -1,8 +1,14 @@
+from typing import Optional, Any
 from itertools import islice
 from .model_api import ModelApi
 
+
 class PagedResource:
     """List adapter for paged resources. Returns sliceable lazy loaded object."""
+    pages: dict[int, Any]
+    page_size: int
+    page_count: Optional[int] = None
+
 
     def __init__(self, page_size=20):
         self.pages = {}
@@ -30,6 +36,7 @@ class PagedResource:
 
     def __len__(self):
         self.ensure_page_count()
+        assert self.page_count is not None
         return (self.page_size * (self.page_count - 1) +
                 len(self.get_page(self.page_count - 1)))
 

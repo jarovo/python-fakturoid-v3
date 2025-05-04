@@ -40,6 +40,9 @@ test = [
   "pytest-examples == 0.0.17",
   "pre-commit >= 4.2.0"
 ]
+dev = [
+  'types-requests'
+]
 
 [project.urls]
 Homepage = "https://github.com/jarovo/python-fakturoid-v3/"

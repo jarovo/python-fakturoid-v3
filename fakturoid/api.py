@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional, Final
+from typing import Optional, Final, TypeVar, Callable, Union
 from datetime import date, datetime, timedelta
 from functools import wraps
 import base64
 import logging
+
 
 import requests
 
@@ -15,11 +16,15 @@ from fakturoid.models import Model, Account, User, BankAccount, Subject, Invoice
 from fakturoid.paging import ModelList
 from fakturoid.strenum import StrEnum
 
-__all__ = ['Fakturoid']
+__all__ = ['Fakturoid', 'NotFoundError']
 
 
 LOGGER: Final = logging.getLogger("python-fakturoid-v3")
 LINK_HEADER_PATTERN: Final = re.compile(r'page=(\d+)[^>]*>; rel="last"')
+
+
+T = TypeVar('T')
+U = TypeVar('U')
 
 
 def extract_page_link(header):
@@ -58,11 +63,11 @@ class APIRequest:
     expected_response_code: int
     baseurl: str
     endpoint: str
-    slug: str = None
+    slug: Optional[str] = None
     headers: dict[str, str] = field(default_factory=dict)
     params: dict[str, str] = field(default_factory=dict)
-    data: Model = None
-    api_response: APIResponse = field(init=False, default=None)
+    data: Optional[Model] = None
+    api_response: Optional[APIResponse] = field(init=False, default=None)
 
     @property
     def url(self):
@@ -94,14 +99,29 @@ class JWTToken(Model):
     created_at: datetime = field(default_factory=lambda: datetime.now())
 
     @property
-    def to_be_renewed(self):
+    def renew_after(self):
         """ Token is to be renewed sooner than it expires to provide a buffer time for the renewal. """
-        return datetime.now() >= self.created_at + self.expires_in / 2
+        return self.created_at + self.expires_in / 2
+
+    @property
+    def to_be_renewed(self):
+        now = datetime.now()
+        return self.renew_after <= now
+
+    @property
+    def expiration_time(self):
+        return self.created_at + self.expires_in
 
     @property
     def is_expired(self):
-        """ Returns False when token is expired. """
-        return datetime.now() >= self.created_at + self.expires_in
+        """ Returns True when token had expired. """
+        now = datetime.now()
+        assert self.created_at <= now, "Token is created in the future."
+        return self.expiration_time < now
+
+
+class NotFoundError(Exception):
+    pass
 
 
 class Fakturoid:
@@ -110,9 +130,8 @@ class Fakturoid:
     client_id: str
     client_secret: str
     user_agent: str
-    _token: JWTToken = JWTToken(token_type='Bearer', access_token='', expires_in=-1)   # Dummy expired token needing automatic renewal.
-
-    _models_api: dict[Model, ModelApi]
+    _token: JWTToken
+    _models_api: dict[type[Model], ModelApi]
 
     baseurl = "https://app.fakturoid.cz/api/v3"
 
@@ -121,6 +140,10 @@ class Fakturoid:
         self.user_agent = user_agent
         self.client_id = client_id
         self.client_secret = client_secret
+
+        # Init to dummy expired token that is about to lazy renewal.
+        self._token = JWTToken(token_type='placeholder_token', access_token='', expires_in=timedelta(-1))
+
 
         self._models_api = {
             Account: AccountApi(self),
@@ -147,19 +170,24 @@ class Fakturoid:
         self.subjects = subjects_find
         self.subjects.search = subjects_search
 
-    def model_api(model_type=None):
+    def model_api(model_type: Union[Fakturoid|type[Model]]=None):
         def wrap(fn):
             @wraps(fn)
-            def wrapper(self: Fakturoid, *args, **kwargs):
+            def wrapper(self, *args, **kwargs):
                 mt: Model = model_type or type(args[0])
                 model_api = self._models_api[mt]
-                return fn(self, model_api, *args, **kwargs)
+                try:
+                    return fn(self, model_api, *args, **kwargs)
+                except requests.exceptions.HTTPError as err:
+                    raise NotFoundError from err
             return wrapper
         return wrap
 
     def ensure_token(self):
         if self._token.to_be_renewed:
+            LOGGER.debug("Renewing _token.")
             self.oauth_token_client_credentials_flow()
+            LOGGER.debug(f"Got new _token. {self._token}")
         return self._token
 
     def oauth_token_client_credentials_flow(self):
@@ -171,7 +199,7 @@ class Fakturoid:
         resp.raise_for_status()
         self._token = JWTToken(**resp.json())
 
-    def account(self):
+    def account(self) -> Account:
         return self._models_api[Account].load()
 
     @model_api(BankAccount)
@@ -193,11 +221,11 @@ class Fakturoid:
         return mapi.search(*args, **kwargs)
 
     @model_api(Invoice)
-    def invoice(self, mapi, id):
-        return mapi.load(id)
+    def invoice(self, mapi, id, *args, **kwargs):
+        return mapi.load(id, *args, **kwargs)
 
     @model_api(Invoice)
-    def invoices(self, mapi, *args, **kwargs):
+    def invoices(self, mapi: InvoicesApi, *args, **kwargs):
         return mapi.find(*args, **kwargs)
 
     @model_api(Invoice)
@@ -275,14 +303,14 @@ class Fakturoid:
 
     def _post(self, endpoint, data: Optional[Model]=None, params=None):
         if data:
-            return self._make_request('post', 201, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json(), params=params)
+            return self._make_request('post', 201, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json(exclude_unset=True), params=params)
         else:
             return self._make_request('post', 201, endpoint, params=params)
 
 
     def _put(self, endpoint, data: Optional[Model] = None):
         if data:
-            return self._make_request('put', 200, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json())
+            return self._make_request('put', 200, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json(exclude_unset=True))
         else:
             return self._make_request('put', 200, endpoint)
 
@@ -291,6 +319,8 @@ class Fakturoid:
 
 
 class CrudModelApi(ModelApi):
+    endpoint: str
+
     def load(self, id: int):
         response = self.session._get('{0}/{1}'.format(self.endpoint, id))
         return self.from_response(response)
@@ -299,12 +329,13 @@ class CrudModelApi(ModelApi):
         response = self.session._get(endpoint or self.endpoint, params=params)
         return self.from_list_response(response)
 
-    def save(self, obj: Model|Unique):
+    def save(self, obj: T) -> T:
         if obj.id:
             result = self.session._put('{0}/{1}'.format(self.endpoint, obj.id), obj)
         else:
             result = self.session._post(self.endpoint, obj)
-        return self.from_response(result)
+        updated = obj.update(result.from_json())
+        return updated
 
     def delete(self, model: Unique):
         self.session._delete('{0}/{1}'.format(self.endpoint, model.id))
@@ -366,7 +397,7 @@ class SubjectsApi(CrudModelApi):
         """
         if not isinstance(query, str):
             raise TypeError("'query' parameter must be str")
-        response = self.session._get('subjects/search'.format(self.endpoint), {'query': query})
+        response = self.session._get('{}/search'.format(self.endpoint),  params={'query': query})
         return self.from_list_response(response)
 
 

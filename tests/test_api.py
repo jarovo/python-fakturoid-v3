@@ -1,15 +1,42 @@
-from __future__ import absolute_import
-
 import freezegun
-import json
 import unittest
 from datetime import date, datetime, timedelta
 from unittest.mock import patch
 from decimal import Decimal
 
 from fakturoid import Fakturoid, Invoice, Line
+from fakturoid.api import JWTToken
 
 from tests.mock import response, FakeResponse
+
+
+class OAuthTestCase(unittest.TestCase):
+    @patch('requests.get', return_value=response('invoice_9.json'))
+    @patch('requests.post', return_value=response('token.json'))
+    def test_oauth_credentials_flow(self, post_mock, get_mock):
+        with freezegun.freeze_time('2025-05-01 18:50:00') as frozen_time:
+            fa = Fakturoid('unit_tests_slug', 'CLIENT_ID', 'CLIENT_SECRET',
+                           'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
+            assert fa._token.is_expired == True
+            assert fa._token.to_be_renewed == True
+            fa.ensure_token()
+            assert post_mock.call_count == 1
+            fa.invoice(1)
+            assert post_mock.call_count == 1
+            assert get_mock.call_count == 1
+
+            assert fa.invoice(1)
+            assert post_mock.call_count == 1
+            assert get_mock.call_count == 2
+
+            frozen_time.move_to('2025-05-01 19:50:00')
+            # The token should be renewed
+            assert fa._token.to_be_renewed == True
+            assert fa._token.is_expired == False
+            assert fa.invoice(1)
+            assert post_mock.call_count == 2
+            assert get_mock.call_count == 3
+
 
 
 class FakturoidTestCase(unittest.TestCase):
@@ -18,32 +45,7 @@ class FakturoidTestCase(unittest.TestCase):
     def setUp(self, mock):
         self.fa = Fakturoid('myslug', 'CLIENT_ID', 'CLIENT_SECRET', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
         self.fa.oauth_token_client_credentials_flow()
-
-
-class OAuthTestCase(FakturoidTestCase):
-    new_token_request_time = datetime.fromisoformat('2025-05-01 18:50:00')
-    past_token_request_time = new_token_request_time - timedelta(seconds=7200)
-
-    @patch('requests.get', return_value=response('invoices.json'))
-    @patch('requests.post', return_value=response('token.json'))
-    def test_oauth_credentials_flow(self, post_mock, get_mock):
-        with freezegun.freeze_time(self.past_token_request_time):
-            self.fa.oauth_token_client_credentials_flow()
-            # Time is the time of token expiration
-            assert self.fa._token.to_be_renewed == False
-            assert self.fa.invoices()
-            assert post_mock.call_count == 1
-            assert get_mock.call_count == 1
-
-            assert self.fa.invoices()
-            assert post_mock.call_count == 1
-            assert get_mock.call_count == 2
-
-        with freezegun.freeze_time(self.new_token_request_time):
-            assert self.fa._token.to_be_renewed == True
-            assert self.fa.invoices()
-            assert post_mock.call_count == 2
-            assert get_mock.call_count == 3
+        return super().setUp()
 
 
 class AccountTestCase(FakturoidTestCase):
@@ -100,8 +102,8 @@ class InvoiceTestCase(FakturoidTestCase):
                                      params={'event': 'pay'},
                                      data=None)
 
-    get_response_text = '{"id":1,"lines":[{"id":1000,"name":"Nails","quantity":"10","unit_name":"ks","unit_price":"1.2"}],"number":"2025-01-01"}'
-    new_response_text = '{"id":1,"lines":[{"id":1000,"name":"Wire","quantity":"10","unit_name":"meter","unit_price":"13.2"}],"number":"2025-01-01"}'
+    get_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Nails","quantity":"10","unit_name":"ks","unit_price":"1.2"}],"number":"2025-01-01"}'
+    new_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Wire","unit_price":"13.2","unit_name":"meter","quantity":"10"}],"number":"2025-01-01"}'
     @patch('requests.get', return_value=FakeResponse(get_response_text))
     @patch('requests.put', return_value=FakeResponse(new_response_text))
     def test_save_update_line(self, put_mock, get_mock):
@@ -119,9 +121,10 @@ class InvoiceTestCase(FakturoidTestCase):
 
         self.fa.save(invoice)
         put_mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/1.json',
-                                     headers={'User-Agent': self.fa.user_agent,
+                                     headers={'Content-Type': 'application/json',
+                                              'User-Agent': self.fa.user_agent,
                                               'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
-                                              'Content-Type': 'application/json'},
+                                              },
                                      params={},
                                      data=self.new_response_text)
 

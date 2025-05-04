@@ -1,7 +1,7 @@
+import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Sequence, TypeVar, Union, Literal, Any
 from decimal import Decimal
-from dateutil.parser import parse
 from pydantic.dataclasses import dataclass
 from pydantic import Field, BaseModel, EmailStr, AnyUrl
 
@@ -12,16 +12,33 @@ __all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
            'Message', 'Expense']
 
 
+ModelDerived=TypeVar('ModelDerived', bound='Model')
+LOGGER = logging.getLogger('pytho-fakturoid-v3-model')
+
+
 class Model(BaseModel):
     """Base class for all Fakturoid model objects"""
 
+    def update(self: ModelDerived, data: dict) -> ModelDerived:
+        update = self.model_dump()
+        update.update(data)
+        for k,v in self.model_validate(update).model_dump(exclude_defaults=True).items():
+            LOGGER.debug(f"updating value of '{k}' from '{getattr(self, k, None)}' to '{v}'")
+            setattr(self, k, v)
+        return self
+
     def __unicode__(self):
-        return "<{0}:{1}>".format(self.__class__.__name__, self.id)
+        return "<{0}>".format(self.__class__.__name__)
 
 
 
 class Unique(BaseModel):
-    id: Optional[int] = Field(export=False)
+    id: Optional[int] = Field(default_factory=lambda: None, exclude=False)
+
+
+class TimeTracked(BaseModel):
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 class AllowedScope(StrEnum):
@@ -77,14 +94,12 @@ class DefaultEstimate(StrEnum):
     quote = "quote"
 
 
-class Account(Model):
+class Account(Model, TimeTracked):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     subdomain: Optional[str] = None
     plan: Optional[str] = None
     plan_price: Optional[Decimal] = None
     plan_paid_users : Optional[int] = None
-    invoice_email: Optional[str] = None
-    name: Optional[str] = None
     invoice_email: Optional[EmailStr] = None
     phone: Optional[str] = None
     web: Optional[AnyUrl] = None
@@ -122,17 +137,15 @@ class Account(Model):
     digitoo_enabled: Optional[bool] = None
     digitoo_auto_processing_enabled: Optional[bool] = None
     digitoo_extractions_remaining: Optional[int] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
 
 class UserAccount(Model):
-    slug: str = None
+    slug: Optional[str] = None
     logo: Optional[AnyUrl] = None
-    name: str = None
-    registration_no: str = None
-    permission: str = None
-    allowed_scope: set[AllowedScope] = None
+    name: Optional[str] = None
+    registration_no: Optional[str] = None
+    permission: Optional[str] = None
+    allowed_scope: Optional[set[AllowedScope]] = None
 
 
 class User(Unique):
@@ -141,11 +154,11 @@ class User(Unique):
     avatar_url: Optional[AnyUrl] = None
     default_account: Optional[str] = None
     permission: Optional[str] = None
-    allowed_scope: set[AllowedScope] = None
-    accounts: list[UserAccount] = None
+    allowed_scope: Optional[set[AllowedScope]] = None
+    accounts: Optional[list[UserAccount]] = None
 
 
-class BankAccount(Unique):
+class BankAccount(Unique, TimeTracked):
     name: Optional[str] = None
     currency: Optional[str] = None
     number: Optional[str] = None
@@ -155,26 +168,85 @@ class BankAccount(Unique):
     expense_pairing: Optional[bool] = None
     payment_adjustment: Optional[bool] = None
     default: Optional[bool] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
 
 
-class Subject(Model, Unique):
+class NumberFormat(Unique, TimeTracked):
+    format: Optional[str] = None
+    preview: Optional[str] = None
+    default: Optional[bool] = None
+
+
+class Inherswitch(StrEnum):
+    Inherit = 'inherit'
+    On = 'On'
+    Off = 'Off'
+
+
+class WebinvoiceHistory(StrEnum):
+    Null = None
+    Disabled = 'disabled'
+    Recent = 'recent'
+    ClientPortal = 'client_portal'
+
+
+class Subject(Model, Unique, TimeTracked):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
+
+    custom_id: Optional[str] = None
+    user_id: Optional[int] = None
+    type: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[Union[EmailStr, Literal[""]]]
+    email_copy: Optional[Union[EmailStr, Literal[""]]]
+    phone: Optional[str] = None
+    web: Optional[str] = None
+    street: Optional[str] = None
+    city: Optional[str] = None
+    zip: Optional[str] = None
+    country: Optional[str] = None
+    has_delivery_address: Optional[bool] = None
+    delivery_name: Optional[str] = None
+    delivery_street: Optional[str] = None
+    delivery_city: Optional[str] = None
+    delivery_country: Optional[str] = None
+    due: Optional[int] = None
+    currency: Optional[str] = None
+    language: Optional[str] = None
+    private_note: Optional[str] = None
     registration_no: Optional[str] = None
-    updated_at: datetime
+    vat_no: Optional[str] = None
+    unreliable: Optional[bool] = None
+    unreliable_checked_at: Optional[datetime] = None
+    legal_form: Optional[str] = None
+    vat_mode: Optional[str] = None
+    bank_account: Optional[str] = None
+    iban: Optional[str] = None
+    swift_bic: Optional[str] = None
+    variable_symbol: Optional[str] = None
+    settings_update_from_ares: Optional[Inherswitch] = None
+    settings_invoice_pdf_attachments: Optional[Inherswitch] = None
+    settings_estimate_pdf_attachments: Optional[Inherswitch] = None
+    settings_invoice_send_reminders: Optional[Inherswitch] = None
+    suggestion_enabled: Optional[bool] = None
+    custom_email_text: Optional[str] = None
+    overdue_email_text: Optional[str] = None
+    invoice_from_proforma_email_text: Optional[str] = None
+    thank_you_email_text: Optional[str] = None
+    custom_estimate_email_text: Optional[str] = None
+    webinvoice_history: Optional[WebinvoiceHistory] = None
+    html_url: Optional[AnyUrl] = None
+    url: Optional[AnyUrl] = None
 
     class Meta:
-        readonly = ['avatar_url', 'html_url', 'url', 'updated_at']
-        decimal = []
+        readonly = ['id', 'user_id', 'unreliable', 'unreliable_checked_at', 'html_url', 'url', 'created_at' 'updated_at']
 
     def __unicode__(self):
         return self.name
 
 
 @dataclass
-class Inventory:
+class LineInventory:
     item_id: str
     sku: str
     article_number_type: str
@@ -184,12 +256,21 @@ class Inventory:
 
 class Line(Unique):
     name: str
-    quantity: Decimal
-    unit_name: Optional[str]
     unit_price: Decimal
+    unit_name: Optional[str] = None
+    quantity: Optional[Decimal] = None
+    unit_price_without_vat: Optional[Decimal] = None
+    unit_price_with_vat: Optional[Decimal] = None
+    total_price_without_vat: Optional[Decimal] = None
+    total_vat: Optional[Decimal] = None
+    native_total_price_without_vat: Optional[Decimal] = None
+    native_total_vat: Optional[Decimal] = None
+    intventory_item_id: Optional[int] = None
+    sku: Optional[str] = None
+    inventory: Optional[LineInventory] = None
 
     class Meta:
-        readonly = []  # no id here, to correct update
+        readonly: list[str] = []  # no id here, to correct update
         decimal = ['quantity', 'unit_price']
 
     def __unicode__(self):
@@ -202,15 +283,26 @@ class Line(Unique):
                 return "{0} {1}".format(self.quantity, self.name)
 
 
-class AbstractInvoice(Model, Unique):
-    lines: list[Line]
-    _loaded_lines = []  # keep loaded data to be able delete removed lines
+class VatRateSummary(Model):
+    vat_rate: Decimal
+    base: Decimal
+    vat: Decimal
+    currency: str
+    native_base: Decimal
+    native_vat: Decimal
+    native_currency: str
 
 
-class Invoice(AbstractInvoice):
+class AccountingDocumentBase(Model, Unique):
+    subject_id: int
+    lines: list[Line] = Field(default_factory=lambda x: list(x))
+    vat_rates_summary: list[VatRateSummary] = Field(default_factory=lambda: list())
+
+
+class Invoice(AccountingDocumentBase):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
 
-    number: Optional[str]
+    number: Optional[str] = None
 
     class Meta:
         readonly = [
@@ -245,7 +337,7 @@ class InventoryItem(Model, Unique):
         return self.name
 
 
-class Expense(AbstractInvoice):
+class Expense(AccountingDocumentBase):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
 
     number: str
@@ -287,7 +379,7 @@ class Message(Model):
     subject: str
 
     class Meta:
-        decimal = []
+        decimal: Sequence[str] = []
 
     def __unicode__(self):
         return self.subject

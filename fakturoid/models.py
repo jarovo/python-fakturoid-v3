@@ -38,8 +38,8 @@ class Model(BaseModel):
 
         return base
 
-    def to_patch_payload(self) -> dict:
-        return self.changed_fields()
+    def to_patch_payload(self):
+        return type(self)(**self.changed_fields())
 
     def __unicode__(self):
         return "<{0}>".format(self.__class__.__name__)

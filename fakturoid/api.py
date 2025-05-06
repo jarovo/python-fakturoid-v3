@@ -158,14 +158,14 @@ class CollectionClient(Generic[U]):
 
     def create(self, instance: U) -> U:
         self.client._ensure_authenticated()
-        json = instance.model_dump_json(exclude_unset=True)
-        raw = self.client._post(f"{self.base_path}.json", json)
+        json_str = instance.model_dump_json(exclude_unset=True)
+        raw = self.client._post(f"{self.base_path}.json", json_str)
         return self.model_cls.model_validate(raw)
 
     def delete(self, instance_id: int) -> None:
         self.client._ensure_authenticated()
         response = self.client.session.delete(
-            f"{self.client.base_url}{self.base_path}/{instance_id}.json"
+            f"{self.client.base_url}/{self.base_path}/{instance_id}.json"
         )
         response.raise_for_status()
 
@@ -177,11 +177,8 @@ class CollectionClient(Generic[U]):
 
     def update(self, instance: U) -> U:
         payload = instance.to_patch_payload()
-        if not payload:
-            return instance  # Nothing to do
-
         self.client._ensure_authenticated()
-        raw = self.client._patch(f"{self.base_path}/{instance.id}.json", payload)
+        raw = self.client._patch(f"{self.base_path}/{instance.id}.json", payload.model_dump_json(exclude_unset=True))
         return self.model_cls.model_validate(raw)
 
     def save(self, instance: U) -> U:
@@ -213,7 +210,6 @@ class Fakturoid:
         # Init to dummy expired token that is about to lazy renewal.
         self._token = JWTToken(token_type='placeholder_token', access_token='', expires_in=timedelta(-1))
 
-        self.base_url = "https://app.fakturoid.cz/api/v3"
         self.session = requests.Session()
         self.session.headers.update({
             "User-Agent": self.user_agent,
@@ -221,15 +217,15 @@ class Fakturoid:
             "Accept": "application/json",
         })
 
-        self.current_user = LoadableClient[User](self, '/user', User)
-        self.account = LoadableClient[Account](self, f'/accounts/{self.slug}/account', Account)
-        self.users = CollectionClient[User](self, f'/accounts/{self.slug}/users', User)
-        self.bank_accounts = CollectionClient[BankAccount](self, f'/accounts/{self.slug}bank_accounts', BankAccount)
-        self.subjects = CollectionClient[Subject](self, f'/accounts/{self.slug}/subjects', Subject)
-        self.invoices = CollectionClient[Invoice](self, f'/accounts/{self.slug}/invoices', Invoice)
-        self.inventory_items = CollectionClient[InventoryItem](self, f'/accounts/{self.slug}/inventory_items', InventoryItem)
-        self.expenses = CollectionClient[Expense](self, f'/accounts/{self.slug}/expenses', Expense)
-        self.generators = CollectionClient[Generator](self, f'/accounts/{self.slug}/generators', Generator)
+        self.current_user = LoadableClient[User](self, 'user', User)
+        self.account = LoadableClient[Account](self, f'accounts/{self.slug}/account', Account)
+        self.users = CollectionClient[User](self, f'accounts/{self.slug}/users', User)
+        self.bank_accounts = CollectionClient[BankAccount](self, f'accounts/{self.slug}/bank_accounts', BankAccount)
+        self.subjects = CollectionClient[Subject](self, f'accounts/{self.slug}/subjects', Subject)
+        self.invoices = CollectionClient[Invoice](self, f'accounts/{self.slug}/invoices', Invoice)
+        self.inventory_items = CollectionClient[InventoryItem](self, f'accounts/{self.slug}/inventory_items', InventoryItem)
+        self.expenses = CollectionClient[Expense](self, f'accounts/{self.slug}/expenses', Expense)
+        self.generators = CollectionClient[Generator](self, f'accounts/{self.slug}/generators', Generator)
 
     def _ensure_token(self):
         if self._token.to_be_renewed:
@@ -255,7 +251,7 @@ class Fakturoid:
         self.session.headers.update({'User-Agent': user_agent, 'Authorization': jwt_token.token_type + ' ' + jwt_token.access_token})
 
     def _get(self, path: str, params=None) -> dict:
-        url = f"{self.base_url}{path}"
+        url = f"{self.base_url}/{path}"
         response = self.session.get(url, params=params)
         if response.status_code == 404:
             raise NotFoundError(f"url={url}")
@@ -263,18 +259,14 @@ class Fakturoid:
             response.raise_for_status()
         return response.json()
 
-    def _post(self, path: str, data=None) -> dict:
-        url = f"{self.base_url}{path}"
+    def _post(self, path: str, data: str) -> dict:
+        url = f"{self.base_url}/{path}"
         response = self.session.post(url, data=data)
         response.raise_for_status()
         return response.json()
 
-    def _patch(self, path: str, payload: dict) -> dict:
+    def _patch(self, path: str, json_str: str) -> dict:
         self._ensure_authenticated()
-        adapter = TypeAdapter(dict)
-        json_payload = adapter.dump_json(payload)
-        response = self.session.patch(f"{self.base_url}/{path}", data=json_payload, headers={
-            "Content-Type": "application/json"
-        })
+        response = self.session.patch(f"{self.base_url}/{path}", data=json_str)
         response.raise_for_status()
         return response.json()

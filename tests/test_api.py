@@ -12,7 +12,7 @@ from tests.mock import response, FakeResponse
 class OAuthTestCase(unittest.TestCase):
 
     @patch('requests.post', return_value=response('token.json'))
-    def test_oauth_credentials_flow(self, post_mock):
+    def test_oauth_credentials_flow(self, post_mock: MagicMock):
         with freezegun.freeze_time('2025-05-01 18:50:00') as frozen_time:
             fa = Fakturoid('unit_tests_slug', 'CLIENT_ID', 'CLIENT_SECRET',
                            'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
@@ -44,11 +44,9 @@ class OAuthTestCase(unittest.TestCase):
 
 
 class FakturoidTestCase(unittest.TestCase):
-
-    def setUp(self):
+    @patch('requests.post', return_value=response('token.json'))
+    def setUp(self, post_mock: MagicMock):
         self.fa = Fakturoid('myslug', 'CLIENT_ID', 'CLIENT_SECRET', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
-        self.fa.session.post = MagicMock()
-        self.fa.session.post.return_value = response('token.json')
 
         self.fa._oauth_token_client_credentials_flow()
         return super().setUp()
@@ -56,10 +54,8 @@ class FakturoidTestCase(unittest.TestCase):
 
 class AccountTestCase(FakturoidTestCase):
     def test_load(self):
-        mock = self.fa.session.get = MagicMock()
-        mock.return_value = response('account.json')
-
-        account = self.fa.account.load()
+        with patch.object(self.fa.session, 'get', return_value=response('account.json')) as mock:
+            account = self.fa.account.load()
 
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/account.json', mock.call_args[0][0])
@@ -68,10 +64,9 @@ class AccountTestCase(FakturoidTestCase):
 
 
 class SubjectTestCase(FakturoidTestCase):
-
-    @patch('requests.get', return_value=response('subject_28.json'))
-    def test_load(self, mock):
-        subject = self.fa.subject(28)
+    def test_load(self):
+        with patch.object(self.fa.session, 'get', return_value=response('subject_28.json')) as mock:
+            subject = self.fa.subjects.get(28)
 
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/subjects/28.json', mock.call_args[0][0])
@@ -79,9 +74,9 @@ class SubjectTestCase(FakturoidTestCase):
         self.assertEqual('47123737', subject.registration_no)
         self.assertEqual('2012-06-02T09:34:47+02:00', subject.updated_at.isoformat())
 
-    @patch('requests.get', return_value=response('subjects.json'))
-    def test_find(self, mock):
-        subjects = self.fa.subjects()
+    def test_find(self):
+        with patch.object(self.fa.session, 'get', return_value=response('subjects.json')) as mock:
+            subjects = self.fa.subjects.list()
 
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/subjects.json', mock.call_args[0][0])
@@ -90,19 +85,18 @@ class SubjectTestCase(FakturoidTestCase):
 
 
 class InvoiceTestCase(FakturoidTestCase):
-
-    @patch('requests.get', return_value=response('invoice_9.json'))
-    def test_load(self, mock):
-        invoice = self.fa.invoice(9)
+    def test_get(self):
+        with patch.object(self.fa.session, 'get', return_value=response('invoice_9.json')) as mock:
+            invoice = self.fa.invoices.get(9)
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9.json', mock.call_args[0][0])
         self.assertEqual('2012-0004', invoice.number)
         self.assertEqual('PC', invoice.lines[0].name)
         self.assertEqual('Notebook', invoice.lines[1].name)
 
-    @patch('requests.post', return_value=FakeResponse(''))
-    def test_fire(self, mock):
-        self.fa.fire_invoice_event(9, 'pay')
+    def test_fire(self):
+        with patch.object(self.fa.session, 'post', return_value=FakeResponse('')) as mock:
+            self.fa.fire_invoice_event(9, 'pay')
 
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json',
                                      headers={'User-Agent': self.fa.user_agent,
@@ -110,36 +104,28 @@ class InvoiceTestCase(FakturoidTestCase):
                                      params={'event': 'pay'},
                                      data=None)
 
-    get_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Nails","quantity":"10","unit_name":"ks","unit_price":"1.2"}],"number":"2025-01-01"}'
-    new_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Wire","unit_price":"13.2","unit_name":"meter","quantity":"10"}],"number":"2025-01-01"}'
-    @patch('requests.get', return_value=FakeResponse(get_response_text))
-    @patch('requests.put', return_value=FakeResponse(new_response_text))
-    def test_save_update_line(self, put_mock, get_mock):
-        invoice = self.fa.invoice(1)
+    def test_save_update_line(self):
+        get_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Nails","quantity":"10","unit_name":"ks","unit_price":"1.2"}],"number":"2025-01-01"}'
+        new_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Wire","unit_price":"13.2","unit_name":"meter","quantity":"10"}],"number":"2025-01-01"}'
+
+        with patch.object(self.fa.session, 'get', return_value=FakeResponse(get_response_text)) as get_mock:
+            invoice = self.fa.invoices.get(1)
         get_mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/1.json',
-                                headers={'User-Agent': self.fa.user_agent,
-                                        'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
-                                },
-                                params={},
-                                data=None)
+                                         params=None)
 
         invoice.lines[0].name = "Wire"
         invoice.lines[0].unit_name = "meter"
         invoice.lines[0].unit_price = Decimal("13.2")
 
-        self.fa.save(invoice)
+        with patch.object(self.fa.session, 'patch', return_value=FakeResponse(new_response_text)) as put_mock:
+            self.fa.invoices.save(invoice)
         put_mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/1.json',
-                                     headers={'Content-Type': 'application/json',
-                                              'User-Agent': self.fa.user_agent,
-                                              'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c',
-                                              },
-                                     params={},
-                                     data=self.new_response_text)
+                                         data=new_response_text)
 
 
-    @patch('requests.post', return_value=FakeResponse(''))
-    def test_fire_with_args(self, mock):
-        self.fa.fire_invoice_event(9, 'pay', paid_at=date(2018, 11, 19))
+    def test_fire_with_args(self):
+        with patch.object(self.fa.session, 'post', return_value=FakeResponse('')) as mock:
+            self.fa.fire_invoice_event(9, 'pay', paid_at=date(2018, 11, 19))
 
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json',
                                      headers={'User-Agent': self.fa.user_agent,
@@ -147,47 +133,42 @@ class InvoiceTestCase(FakturoidTestCase):
                                      params={'event': 'pay', 'paid_at': '2018-11-19'},
                                      data=None)
 
-    @patch('requests.get', return_value=response('invoices.json'))
-    def test_find(self, mock):
-        self.fa.invoices()[:10]
+    def test_list(self):
+        with patch.object(self.fa.session, 'get', return_value=response('invoices.json')) as mock:
+            self.fa.invoices.list()[:10]
         mock.assert_called_once_with('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json',
-                                     headers={'User-Agent': self.fa.user_agent,
-                                              'Authorization': 'Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c'},
-                                     params={'page': 1},
-                                     data=None)
+                                     params={'page': 1})
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json', mock.call_args[0][0])
         # TODO paging test
 
 
 class InventoryTestCase(FakturoidTestCase):
-
-    @patch('requests.get', return_value=response('inventory_items.json'))
-    def test_find(self, mock):
-        inventory_items = list(self.fa.inventory_items())
+    def test_find(self):
+        with patch.object(self.fa.session, 'get', return_value=response('inventory_items.json')) as mock:
+            inventory_items = list(self.fa.inventory_items.list())
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/inventory_items.json', mock.call_args[0][0])
         self.assertEqual(4, len(inventory_items))
 
-    @patch('requests.get', return_value=response('inventory_items_203140.json'))
-    def test_load(self, mock):
-        inventory_item = self.fa.inventory_item(203140)
+    def test_get(self):
+        with patch.object(self.fa.session, 'get', return_value=response('inventory_items_203140.json')) as mock:
+            inventory_item = self.fa.inventory_items.get(203140)
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/inventory_items/203140.json', mock.call_args[0][0])
         self.assertEqual(203140, inventory_item.id)
 
 
 class GeneratorTestCase(FakturoidTestCase):
-
-    @patch('requests.get', return_value=response('generator_4.json'))
-    def test_load(self, mock):
-        g = self.fa.generator(4)
+    def test_load(self):
+        with patch.object(self.fa.session, 'get', return_value=response('generator_4.json')) as mock:
+            g = self.fa.generator(4)
 
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/generators/4.json', mock.call_args[0][0])
         self.assertEqual('Podpora', g.name)
 
-    @patch('requests.get', return_value=response('generators.json'))
-    def test_find(self, mock):
-        generators = self.fa.generators()
+    def test_find(self):
+        with patch.object(self.fa.session, 'get', return_value=response('generators.json')) as mock:
+            generators = self.fa.generators.list()
 
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/generators.json', mock.call_args[0][0])
         self.assertEqual(2, len(generators))

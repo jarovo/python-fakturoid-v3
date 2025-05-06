@@ -1,7 +1,7 @@
 import freezegun
 import unittest
 from datetime import date
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from decimal import Decimal
 
 from fakturoid.api import Fakturoid
@@ -10,47 +10,56 @@ from tests.mock import response, FakeResponse
 
 
 class OAuthTestCase(unittest.TestCase):
-    @patch('requests.get', return_value=response('invoice_9.json'))
+
     @patch('requests.post', return_value=response('token.json'))
-    def test_oauth_credentials_flow(self, post_mock, get_mock):
+    def test_oauth_credentials_flow(self, post_mock):
         with freezegun.freeze_time('2025-05-01 18:50:00') as frozen_time:
             fa = Fakturoid('unit_tests_slug', 'CLIENT_ID', 'CLIENT_SECRET',
                            'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
+
             assert fa._token.is_expired == True
             assert fa._token.to_be_renewed == True
-            fa.ensure_token()
+            fa._ensure_token()
             assert post_mock.call_count == 1
-            fa.invoice(1)
-            assert post_mock.call_count == 1
-            assert get_mock.call_count == 1
 
-            assert fa.invoice(1)
+            fa.session.get = MagicMock()
+            fa.session.get.return_value=response('invoice_9.json')
+
+            fa.invoices.get(1)
             assert post_mock.call_count == 1
-            assert get_mock.call_count == 2
+            assert fa.session.get.call_count == 1
+
+            assert fa.invoices.get(id=1)
+            assert post_mock.call_count == 1
+            assert fa.session.get.call_count == 2
 
             frozen_time.move_to('2025-05-01 19:50:00')
             # The token should be renewed
             assert fa._token.to_be_renewed == True
             assert fa._token.is_expired == False
-            assert fa.invoice(1)
+            assert fa.invoices.get(1)
             assert post_mock.call_count == 2
-            assert get_mock.call_count == 3
+            assert fa.session.get.call_count == 3
 
 
 
 class FakturoidTestCase(unittest.TestCase):
 
-    @patch('requests.post', return_value=response("token.json"))
-    def setUp(self, mock):
+    def setUp(self):
         self.fa = Fakturoid('myslug', 'CLIENT_ID', 'CLIENT_SECRET', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
+        self.fa.session.post = MagicMock()
+        self.fa.session.post.return_value = response('token.json')
+
         self.fa._oauth_token_client_credentials_flow()
         return super().setUp()
 
 
 class AccountTestCase(FakturoidTestCase):
-    @patch('requests.get', return_value=response('account.json'))
-    def test_load(self, mock):
-        account = self.fa.account()
+    def test_load(self):
+        mock = self.fa.session.get = MagicMock()
+        mock.return_value = response('account.json')
+
+        account = self.fa.account.load()
 
         mock.assert_called_once()
         self.assertEqual('https://app.fakturoid.cz/api/v3/accounts/myslug/account.json', mock.call_args[0][0])

@@ -3,10 +3,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 import typing
-from typing import Optional, Final, TypeVar, Any, Union, Generic, Type, List
-from datetime import date, datetime, timedelta
+from typing import Optional, Final, TypeVar, Any, Generic, Type, List
+from datetime import datetime, timedelta
 from functools import wraps
-from pydantic import BaseModel, TypeAdapter
+from pydantic import TypeAdapter
 import base64
 import logging
 
@@ -14,7 +14,6 @@ import logging
 import requests
 
 from fakturoid.models import Model, Account, User, BankAccount, Subject, Invoice, InventoryItem, Generator, Expense, UniqueMixin
-from fakturoid.paging import ModelList
 from fakturoid.strenum import StrEnum
 
 __all__ = ['Fakturoid', 'NotFoundError']
@@ -231,7 +230,6 @@ class Fakturoid:
         self.inventory_items = CollectionClient[InventoryItem](self, f'/accounts/{self.slug}/inventory_items', InventoryItem)
         self.expenses = CollectionClient[Expense](self, f'/accounts/{self.slug}/expenses', Expense)
         self.generators = CollectionClient[Generator](self, f'/accounts/{self.slug}/generators', Generator)
-        self.messages = CollectionClient[Message](self, f'/accounts/{self.slug}/inventory_items', Message)
 
     def _ensure_token(self):
         if self._token.to_be_renewed:

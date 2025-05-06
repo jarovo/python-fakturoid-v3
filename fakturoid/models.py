@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Optional, Sequence, TypeVar, Union, Literal, Any
+from typing import Optional, Union, Literal, Any
 from decimal import Decimal
 from pydantic.dataclasses import dataclass
 from pydantic import Field, BaseModel, EmailStr, AnyUrl, PrivateAttr
@@ -8,7 +8,7 @@ from pydantic import Field, BaseModel, EmailStr, AnyUrl, PrivateAttr
 from fakturoid.strenum import StrEnum
 
 __all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
-           'Message', 'Expense']
+           'Expense']
 
 
 LOGGER = logging.getLogger('python-fakturoid-v3-model')

@@ -1,6 +1,6 @@
 # fakturoid.cz Python API
 
-The Python interface to online accounting service [Fakturoid](http://fakturoid.cz/) using Faktiuroid's v3 api.
+The Python interface to online accounting service [Fakturoid](http://fakturoid.cz/) using Fakturoid's v3 api.
 
 This library is developed and maintained by Jaroslav Henner ([jaroslav.henner@gmail.com](mailto:jaroslav.henner@gmail.com)).
 

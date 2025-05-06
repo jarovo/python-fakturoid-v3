@@ -91,7 +91,9 @@ class APIRequest:
 class JWTToken(Model):
     token_type: str
     access_token: str
-    expires_in: timedelta = field(default_factory=lambda x: timedelta(seconds=int(x)))
+
+    # Default token is expired and is gonna be renewed upon next request.
+    expires_in: timedelta = field(default_factory=lambda: timedelta(seconds=-1))
     created_at: datetime = field(default_factory=lambda: datetime.now())
 
     @property

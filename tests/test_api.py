@@ -1,11 +1,10 @@
 import freezegun
 import unittest
-from datetime import date, datetime, timedelta
+from datetime import date
 from unittest.mock import patch
 from decimal import Decimal
 
-from fakturoid import Fakturoid, Invoice, Line
-from fakturoid.api import JWTToken
+from fakturoid.api import Fakturoid
 
 from tests.mock import response, FakeResponse
 
@@ -44,7 +43,7 @@ class FakturoidTestCase(unittest.TestCase):
     @patch('requests.post', return_value=response("token.json"))
     def setUp(self, mock):
         self.fa = Fakturoid('myslug', 'CLIENT_ID', 'CLIENT_SECRET', 'python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)')
-        self.fa.oauth_token_client_credentials_flow()
+        self.fa._oauth_token_client_credentials_flow()
         return super().setUp()
 
 

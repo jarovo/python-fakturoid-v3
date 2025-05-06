@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional, Final, TypeVar, Callable, Union
+import typing
+from typing import Optional, Final, TypeVar, Any, Union, Generic, Type, List
 from datetime import date, datetime, timedelta
 from functools import wraps
+from pydantic import BaseModel, TypeAdapter
 import base64
 import logging
 
 
 import requests
 
-from fakturoid.model_api import ModelApi
-from fakturoid.models import Model, Account, User, BankAccount, Subject, Invoice, InventoryItem, Generator, Message, Expense, Unique
+from fakturoid.models import Model, Account, User, BankAccount, Subject, Invoice, InventoryItem, Generator, Expense, UniqueMixin
 from fakturoid.paging import ModelList
 from fakturoid.strenum import StrEnum
 
@@ -21,10 +22,6 @@ __all__ = ['Fakturoid', 'NotFoundError']
 
 LOGGER: Final = logging.getLogger("python-fakturoid-v3")
 LINK_HEADER_PATTERN: Final = re.compile(r'page=(\d+)[^>]*>; rel="last"')
-
-
-T = TypeVar('T')
-U = TypeVar('U')
 
 
 def extract_page_link(header):
@@ -123,6 +120,80 @@ class JWTToken(Model):
 class NotFoundError(Exception):
     pass
 
+M = TypeVar('M', bound=Model)
+U = TypeVar('U', bound=UniqueMixin)
+
+
+class LoadableClient(Generic[M]):
+    def __init__(self, client: Fakturoid, base_path: str,  model_cls: Type[M]):
+        self.client = client
+        self.base_path = base_path
+        self.model_cls = model_cls
+
+    def load(self) -> M:
+        self.client._ensure_authenticated()
+        raw = self.client._get(f"{self.base_path}.json")
+        return self.model_cls.model_validate(raw)
+
+
+class CollectionClient(Generic[U]):
+    def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[U]):
+        self.client = client
+        self.base_path = base_path
+        self.model_cls = model_cls
+
+    def get(self, id: int) -> U:
+        self.client._ensure_authenticated()
+        raw = self.client._get(f"{self.base_path}/{id}.json")
+        return self._bind(self.model_cls.model_validate(raw))
+
+    def _bind(self, obj: U) -> U:
+        if isinstance(obj, Model):
+            obj.__resource_path__ = self.base_path
+        return obj
+
+    def list(self, **params) -> List[U]:
+        self.client._ensure_authenticated()
+        results = self.client._get(self.base_path + ".json", params=params)
+        return [self._bind(self.model_cls.model_validate(item)) for item in results]
+
+    def create(self, instance: U) -> U:
+        self.client._ensure_authenticated()
+        json = instance.model_dump_json(exclude_unset=True)
+        raw = self.client._post(f"{self.base_path}.json", json)
+        return self.model_cls.model_validate(raw)
+
+    def delete(self, instance_id: int) -> None:
+        self.client._ensure_authenticated()
+        response = self.client.session.delete(
+            f"{self.client.base_url}{self.base_path}/{instance_id}.json"
+        )
+        response.raise_for_status()
+
+    def find(self, **kwargs) -> typing.Generator[U]:
+        all_items = self.list()
+        for item in all_items:
+            if all(getattr(item, k, None) == v for k, v in kwargs.items()):
+                yield item
+
+    def update(self, instance: U) -> U:
+        payload = instance.to_patch_payload()
+        if not payload:
+            return instance  # Nothing to do
+
+        self.client._ensure_authenticated()
+        raw = self.client._patch(f"{self.base_path}/{instance.id}.json", payload)
+        return self.model_cls.model_validate(raw)
+
+    def save(self, instance: U) -> U:
+        if instance.id:
+            return self.update(instance)
+        else:
+            return self.create(instance)
+
+
+class FakturoidError(Exception):
+    pass
 
 class Fakturoid:
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
@@ -131,9 +202,8 @@ class Fakturoid:
     client_secret: str
     user_agent: str
     _token: JWTToken
-    _models_api: dict[type[Model], ModelApi]
 
-    baseurl = "https://app.fakturoid.cz/api/v3"
+    base_url = "https://app.fakturoid.cz/api/v3"
 
     def __init__(self, slug:str, client_id:str, client_secret: str, user_agent:str):
         self.slug = slug
@@ -144,436 +214,69 @@ class Fakturoid:
         # Init to dummy expired token that is about to lazy renewal.
         self._token = JWTToken(token_type='placeholder_token', access_token='', expires_in=timedelta(-1))
 
+        self.base_url = "https://app.fakturoid.cz/api/v3"
+        self.session = requests.Session()
+        self.session.headers.update({
+            "User-Agent": self.user_agent,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        })
 
-        self._models_api = {
-            Account: AccountApi(self),
-            User: UserApi(self),
-            BankAccount: BankAccountsApi(self),
-            Subject: SubjectsApi(self),
-            Invoice: InvoicesApi(self),
-            InventoryItem: InventoryApi(self),
-            Expense: ExpensesApi(self),
-            Generator: GeneratorsApi(self),
-            Message: MessagesApi(self),
-        }
+        self.current_user = LoadableClient[User](self, '/user', User)
+        self.account = LoadableClient[Account](self, f'/accounts/{self.slug}/account', Account)
+        self.users = CollectionClient[User](self, f'/accounts/{self.slug}/users', User)
+        self.bank_accounts = CollectionClient[BankAccount](self, f'/accounts/{self.slug}bank_accounts', BankAccount)
+        self.subjects = CollectionClient[Subject](self, f'/accounts/{self.slug}/subjects', Subject)
+        self.invoices = CollectionClient[Invoice](self, f'/accounts/{self.slug}/invoices', Invoice)
+        self.inventory_items = CollectionClient[InventoryItem](self, f'/accounts/{self.slug}/inventory_items', InventoryItem)
+        self.expenses = CollectionClient[Expense](self, f'/accounts/{self.slug}/expenses', Expense)
+        self.generators = CollectionClient[Generator](self, f'/accounts/{self.slug}/generators', Generator)
+        self.messages = CollectionClient[Message](self, f'/accounts/{self.slug}/inventory_items', Message)
 
-        # Hack to expose full search on subjects as
-        #
-        #     fa.subjects.search()
-        #
-        # TODO Keep this API but make internal code redesing in future.
-        def subjects_find(*args, **kwargs):
-            return self._subjects_find(*args, **kwargs)
-
-        def subjects_search(*args, **kwargs):
-            return self._subjects_search(*args, **kwargs)
-        self.subjects = subjects_find
-        self.subjects.search = subjects_search
-
-    def model_api(model_type: Union[Fakturoid|type[Model]]=None):
-        def wrap(fn):
-            @wraps(fn)
-            def wrapper(self, *args, **kwargs):
-                mt: Model = model_type or type(args[0])
-                model_api = self._models_api[mt]
-                try:
-                    return fn(self, model_api, *args, **kwargs)
-                except requests.exceptions.HTTPError as err:
-                    raise NotFoundError from err
-            return wrapper
-        return wrap
-
-    def ensure_token(self):
+    def _ensure_token(self):
         if self._token.to_be_renewed:
             LOGGER.debug("Renewing _token.")
-            self.oauth_token_client_credentials_flow()
+            self._oauth_token_client_credentials_flow()
             LOGGER.debug(f"Got new _token. {self._token}")
         return self._token
 
-    def oauth_token_client_credentials_flow(self):
+    def _oauth_token_client_credentials_flow(self):
         credentials = base64.urlsafe_b64encode(b':'.join((self.client_id.encode('utf-8'), self.client_secret.encode('utf-8'))))
         headers={'Accept': 'application/json',
                  'User-Agent': self.user_agent,
                  'Authorization': b'Basic ' + credentials}
-        resp = requests.post(f'{self.baseurl}/oauth/token', headers=headers, data={"grant_type": "client_credentials"})
+        resp = requests.post(f'{self.base_url}/oauth/token', headers=headers, data={"grant_type": "client_credentials"})
         resp.raise_for_status()
         self._token = JWTToken(**resp.json())
 
-    def account(self) -> Account:
-        return self._models_api[Account].load()
+    def _ensure_authenticated(self):
+        self._ensure_token()
+        self._set_authorization(self.user_agent, self._token)
 
-    @model_api(BankAccount)
-    def bank_account(self, mapi):
-        return mapi.find()
+    def _set_authorization(self, user_agent: str, jwt_token: JWTToken):
+        self.session.headers.update({'User-Agent': user_agent, 'Authorization': jwt_token.token_type + ' ' + jwt_token.access_token})
 
-    @model_api(Subject)
-    def subject(self, mapi, id):
-        return mapi.load(id)
-
-    @model_api(Subject)
-    def _subjects_find(self, mapi, *args, **kwargs):
-        """call using fa.subjects()"""
-        return mapi.find(*args, **kwargs)
-
-    @model_api(Subject)
-    def _subjects_search(self, mapi, *args, **kwargs):
-        """call using fa.subjects.search()"""
-        return mapi.search(*args, **kwargs)
-
-    @model_api(Invoice)
-    def invoice(self, mapi, id, *args, **kwargs):
-        return mapi.load(id, *args, **kwargs)
-
-    @model_api(Invoice)
-    def invoices(self, mapi: InvoicesApi, *args, **kwargs):
-        return mapi.find(*args, **kwargs)
-
-    @model_api(Invoice)
-    def fire_invoice_event(self, mapi, id, event, **kwargs):
-        return mapi.fire(id, event, **kwargs)
-
-    @model_api(Expense)
-    def expense(self, mapi, id):
-        return mapi.load(id)
-
-    @model_api(Expense)
-    def expenses(self, mapi, *args, **kwargs):
-        return mapi.find(*args, **kwargs)
-
-    @model_api(Expense)
-    def fire_expense_event(self, mapi, id, event, **kwargs):
-        return mapi.fire(id, event, **kwargs)
-
-    @model_api(Generator)
-    def generator(self, mapi, id):
-        return mapi.load(id)
-
-    @model_api(Generator)
-    def generators(self, mapi, *args, **kwargs):
-        return mapi.find(*args, **kwargs)
-
-    @model_api(InventoryItem)
-    def inventory_item(self, mapi, id):
-        return mapi.load(id)
-
-    @model_api(InventoryItem)
-    def inventory_items(self, mapi, *args, **kwargs):
-        return mapi.find(*args, **kwargs)
-
-    @model_api(InventoryItem)
-    def inventory_items(self, mapi, *args, **kwargs):
-        return mapi.find(*args, **kwargs)
-
-    @model_api(User)
-    def current_user(self, mapi):
-        return mapi.current_user()
-
-    @model_api(User)
-    def users(self, mapi):
-        return mapi.list_users()
-
-    @model_api()
-    def save(self, mapi: CrudModelApi, obj, **kwargs):
-        mapi.save(obj, **kwargs)
-
-    @model_api()
-    def delete(self, mapi, obj):
-        """Call with loaded model or use new instance directly.
-        s = fa.subject(1234)
-        a.delete(s)
-
-        fa.delete(Subject(id=1234))
-        """
-        mapi.delete(obj)
-
-    def _make_request(self, method, success_status, endpoint, headers = None, params=None, data=None):
-        jwt_token = self.ensure_token()
-        user_agent = self.user_agent
-
-        params = params or {}
-        headers = headers or {}
-
-        api_request = APIRequest(RequestMethod(method), success_status, self.baseurl, endpoint, self.slug, headers, params, data)
-        api_request.set_authorization(user_agent, jwt_token)
-        api_response = api_request.send()
-        return api_response
-
-    def _get(self, endpoint, params=None):
-        return self._make_request('get', 200, endpoint, params=params)
-
-    def _post(self, endpoint, data: Optional[Model]=None, params=None):
-        if data:
-            return self._make_request('post', 201, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json(exclude_unset=True), params=params)
+    def _get(self, path: str, params=None) -> dict:
+        url = f"{self.base_url}{path}"
+        response = self.session.get(url, params=params)
+        if response.status_code == 404:
+            raise NotFoundError(f"url={url}")
         else:
-            return self._make_request('post', 201, endpoint, params=params)
+            response.raise_for_status()
+        return response.json()
 
+    def _post(self, path: str, data=None) -> dict:
+        url = f"{self.base_url}{path}"
+        response = self.session.post(url, data=data)
+        response.raise_for_status()
+        return response.json()
 
-    def _put(self, endpoint, data: Optional[Model] = None):
-        if data:
-            return self._make_request('put', 200, endpoint, headers={'Content-Type': 'application/json'}, data=data.model_dump_json(exclude_unset=True))
-        else:
-            return self._make_request('put', 200, endpoint)
-
-    def _delete(self, endpoint):
-        return self._make_request('delete', 204, endpoint)
-
-
-class CrudModelApi(ModelApi):
-    endpoint: str
-
-    def load(self, id: int):
-        response = self.session._get('{0}/{1}'.format(self.endpoint, id))
-        return self.from_response(response)
-
-    def find(self, params={}, endpoint=None):
-        response = self.session._get(endpoint or self.endpoint, params=params)
-        return self.from_list_response(response)
-
-    def save(self, obj: T) -> T:
-        if obj.id:
-            result = self.session._put('{0}/{1}'.format(self.endpoint, obj.id), obj)
-        else:
-            result = self.session._post(self.endpoint, obj)
-        updated = obj.update(result.from_json())
-        return updated
-
-    def delete(self, model: Unique):
-        self.session._delete('{0}/{1}'.format(self.endpoint, model.id))
-
-
-class AccountApi(ModelApi):
-    model_type = Account
-    endpoint = 'account'
-
-    def load(self):
-        response = self.session._get(self.endpoint)
-        return self.from_response(response)
-
-
-class UserApi(ModelApi):
-    model_type = User
-
-    def current_user(self):
-        req = APIRequest(RequestMethod.Get, 200, self.session.baseurl, 'user')
-        req.set_authorization(self.session.user_agent, self.session.ensure_token())
-        response = req.send()
-        return self.from_response(response)
-
-    def list_users(self, params={}):
-        response = self.session._get('users', params=params)
-        return self.from_list_response(response)
-
-
-class BankAccountsApi(ModelApi):
-    model_type = BankAccount
-    endpoint = 'bank_accounts'
-
-    def find(self):
-        response = self.session._get(self.endpoint)
-        return self.from_list_response(response)
-
-
-class SubjectsApi(CrudModelApi):
-    model_type = Subject
-    endpoint = 'subjects'
-
-    def find(self, since=None, updated_since=None, custom_id=None):
-        params = {}
-        if since:
-            if not isinstance(since, (datetime, date)):
-                raise TypeError("'since' parameter must be date or datetime")
-            params['since'] = since.isoformat()
-        if updated_since:
-            if not isinstance(updated_since, (datetime, date)):
-                raise TypeError("'updated_since' parameter must be date or datetime")
-            params['updated_since'] = updated_since.isoformat()
-        if custom_id:
-            params['custom_id'] = custom_id
-        return super(SubjectsApi, self).find(params)
-
-    def search(self, query: str):
-        """Full text search as described in
-        https://fakturoid.docs.apiary.io/#reference/subjects/subjects-collection-fulltext-search/fulltextove-vyhledavani-v-kontaktech
-        """
-        if not isinstance(query, str):
-            raise TypeError("'query' parameter must be str")
-        response = self.session._get('{}/search'.format(self.endpoint),  params={'query': query})
-        return self.from_list_response(response)
-
-
-class InvoicesApi(CrudModelApi):
-    """If number argument is given, returns single Invoice object (or None),
-    otherwise iterable list of invoices are returned.
-    """
-    model_type = Invoice
-    endpoint = 'invoices'
-
-    STATUSES = ['open', 'sent', 'overdue', 'paid', 'cancelled']
-    EVENTS = ['mark_as_sent', 'deliver', 'pay', 'pay_proforma', 'pay_partial_proforma', 'remove_payment', 'deliver_reminder', 'cancel', 'undo_cancel']
-    EVENT_ARGS = {
-        'pay': {'paid_at', 'paid_amount'}
-    }
-
-    def fire(self, invoice_id, event, **kwargs):
-        if not isinstance(invoice_id, int):
-            raise TypeError('invoice_id must be int')
-        if event not in self.EVENTS:
-            raise ValueError('invalid event, expected one of {0}'.format(', '.join(self.EVENTS)))
-
-        allowed_args = self.EVENT_ARGS.get(event, set())
-        if not set(kwargs.keys()).issubset(allowed_args):
-            msg = "invalid event arguments, only {0} can be used with {1}".format(', '.join(allowed_args), event)
-            raise ValueError(msg)
-
-        params = {'event': event}
-        params.update(kwargs)
-
-        if 'paid_at' in params:
-            if not isinstance(params['paid_at'], date):
-                raise TypeError("'paid_at' argument must be date")
-            params['paid_at'] = params['paid_at'].isoformat()
-
-        self.session._post('invoices/{0}/fire'.format(invoice_id), params=params)
-
-    def find(self, proforma=None, subject_id=None, since=None, updated_since=None, number=None, status=None, custom_id=None):
-        params = {}
-        if subject_id:
-            if not isinstance(subject_id, int):
-                raise TypeError("'subject_id' parameter must be int")
-            params['subject_id'] = subject_id
-        if since:
-            if not isinstance(since, (datetime, date)):
-                raise TypeError("'since' parameter must be date or datetime")
-            params['since'] = since.isoformat()
-        if updated_since:
-            if not isinstance(updated_since, (datetime, date)):
-                raise TypeError("'updated_since' parameter must be date or datetime")
-            params['updated_since'] = updated_since.isoformat()
-        if number:
-            params['number'] = number
-        if custom_id:
-            params['custom_id'] = custom_id
-        if status:
-            if status not in self.STATUSES:
-                raise ValueError('invalid invoice status, expected one of {0}'.format(', '.join(self.STATUSES)))
-            params['status'] = status
-
-        if proforma is None:
-            endpoint = self.endpoint
-        elif proforma:
-            endpoint = '{0}/proforma'.format(self.endpoint)
-        else:
-            endpoint = '{0}/regular'.format(self.endpoint)
-
-        return ModelList(self, endpoint, params)
-
-
-class ExpensesApi(CrudModelApi):
-    """If number argument is givent returms single Expense object (or None),
-    otherwise iterable list of expenses are returned.
-    """
-    model_type = Expense
-    endpoint = 'expenses'
-
-    STATUSES = ['open', 'overdue', 'paid']
-    EVENTS = ['remove_payment', 'deliver', 'pay', 'lock', 'unlock']
-    EVENT_ARGS = {
-        'pay': {'paid_on', 'paid_amount', 'variable_symbol', 'bank_account_id'}
-    }
-
-    def fire(self, expense_id: int, event, **kwargs):
-        if not isinstance(expense_id, int):
-            raise TypeError('expense_id must be int')
-        if event not in self.EVENTS:
-            raise ValueError('invalid event, expected one of {0}'.format(', '.join(self.EVENTS)))
-
-        allowed_args = self.EVENT_ARGS.get(event, set())
-        if not set(kwargs.keys()).issubset(allowed_args):
-            msg = "invalid event arguments, only {0} can be used with {1}".format(', '.join(allowed_args), event)
-            raise ValueError(msg)
-
-        params = {'event': event}
-        params.update(kwargs)
-
-        if 'paid_on' in params:
-            if not isinstance(params['paid_on'], date):
-                raise TypeError("'paid_on' argument must be date")
-            params['paid_on'] = params['paid_on'].isoformat()
-
-        self.session._post('expenses/{0}/fire'.format(expense_id), params=params)
-
-    def find(self, subject_id=None, since=None, updated_since=None, number=None, status=None, custom_id=None, variable_symbol=None):
-        params = {}
-        if subject_id:
-            if not isinstance(subject_id, int):
-                raise TypeError("'subject_id' parameter must be int")
-            params['subject_id'] = subject_id
-        if since:
-            if not isinstance(since, (datetime, date)):
-                raise TypeError("'since' parameter must be date or datetime")
-            params['since'] = since.isoformat()
-        if updated_since:
-            if not isinstance(updated_since, (datetime, date)):
-                raise TypeError("'updated_since' parameter must be date or datetime")
-            params['updated_since'] = updated_since.isoformat()
-        if number:
-            params['number'] = number
-        if custom_id:
-            params['custom_id'] = custom_id
-        if status:
-            if status not in self.STATUSES:
-                raise ValueError('invalid invoice status, expected one of {0}'.format(', '.join(self.STATUSES)))
-            params['status'] = status
-        if variable_symbol:
-            params['variable_symbol'] = variable_symbol
-
-        return ModelList(self, self.endpoint, params)
-
-
-class GeneratorsApi(CrudModelApi):
-    model_type = Generator
-    endpoint = 'generators'
-
-    def find(self, recurring=None, subject_id=None, since=None):
-        params = {}
-        if subject_id:
-            if not isinstance(subject_id, int):
-                raise TypeError("'subject_id' parameter must be int")
-            params['subject_id'] = subject_id
-        if since:
-            if not isinstance(since, (datetime, date)):
-                raise TypeError("'since' parameter must be date or datetime")
-            params['since'] = since.isoformat()
-
-        if recurring is None:
-            endpoint = self.endpoint
-        elif recurring:
-            endpoint = '{0}/recurring'.format(self.endpoint)
-        else:
-            endpoint = '{0}/template'.format(self.endpoint)
-
-        return super(GeneratorsApi, self).find(params, endpoint)
-
-
-class InventoryApi(CrudModelApi):
-    model_type = InventoryItem
-    endpoint = 'inventory_items'
-
-    def find(self, name=None, article_number=None, sku=None):
-        params = {}
-        if name:
-            params['name'] = name
-
-        return ModelList(self, self.endpoint, params)
-
-
-class MessagesApi(ModelApi):
-    model_type = Message
-    endpoint = 'message'
-
-    def save(self, model, **kwargs):
-        invoice_id = kwargs.get('invoice_id')
-        if not isinstance(invoice_id, int):
-            raise TypeError("invoice_id must be int")
-        result = self.session._post('invoices/{0}/{1}'.format(invoice_id, self.endpoint), model.get_fields())
-        model.update(result['json'])
+    def _patch(self, path: str, payload: dict) -> dict:
+        self._ensure_authenticated()
+        adapter = TypeAdapter(dict)
+        json_payload = adapter.dump_json(payload)
+        response = self.session.patch(f"{self.base_url}/{path}", data=json_payload, headers={
+            "Content-Type": "application/json"
+        })
+        response.raise_for_status()
+        return response.json()

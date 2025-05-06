@@ -3,40 +3,54 @@ from datetime import datetime
 from typing import Optional, Sequence, TypeVar, Union, Literal, Any
 from decimal import Decimal
 from pydantic.dataclasses import dataclass
-from pydantic import Field, BaseModel, EmailStr, AnyUrl
+from pydantic import Field, BaseModel, EmailStr, AnyUrl, PrivateAttr
 
 from fakturoid.strenum import StrEnum
-
 
 __all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
            'Message', 'Expense']
 
 
-ModelDerived=TypeVar('ModelDerived', bound='Model')
-LOGGER = logging.getLogger('pytho-fakturoid-v3-model')
+LOGGER = logging.getLogger('python-fakturoid-v3-model')
 
 
 class Model(BaseModel):
     """Base class for all Fakturoid model objects"""
 
-    def update(self: ModelDerived, data: dict) -> ModelDerived:
-        update = self.model_dump()
-        update.update(data)
-        for k,v in self.model_validate(update).model_dump(exclude_defaults=True).items():
-            LOGGER.debug(f"updating value of '{k}' from '{getattr(self, k, None)}' to '{v}'")
-            setattr(self, k, v)
-        return self
+    __original_data__: dict[str, Any] = {}
+    __resource_path__: Optional[str] = None
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        object.__setattr__(self, '__original_data__', self.model_dump())
+
+    def changed_fields(self) -> dict[str, Any]:
+        # Start with changed values (unset or default-excluded)
+        base = self.model_dump(exclude_defaults=True, exclude_unset=True)
+
+        # Get fields to always include (e.g. foreign keys)
+        meta = getattr(self, "Meta", None)
+        always = getattr(meta, "always_include", []) if meta else []
+
+        for field in always:
+            if field not in base and hasattr(self, field):
+                base[field] = getattr(self, field)
+
+        return base
+
+    def to_patch_payload(self) -> dict:
+        return self.changed_fields()
 
     def __unicode__(self):
         return "<{0}>".format(self.__class__.__name__)
 
 
 
-class Unique(BaseModel):
+class UniqueMixin(Model):
     id: Optional[int] = Field(default_factory=lambda: None, exclude=False)
 
 
-class TimeTracked(BaseModel):
+class TimeTrackedMixin(Model):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -94,7 +108,7 @@ class DefaultEstimate(StrEnum):
     quote = "quote"
 
 
-class Account(Model, TimeTracked):
+class Account(TimeTrackedMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     subdomain: Optional[str] = None
     plan: Optional[str] = None
@@ -148,7 +162,7 @@ class UserAccount(Model):
     allowed_scope: Optional[set[AllowedScope]] = None
 
 
-class User(Unique):
+class User(UniqueMixin):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     avatar_url: Optional[AnyUrl] = None
@@ -158,7 +172,7 @@ class User(Unique):
     accounts: Optional[list[UserAccount]] = None
 
 
-class BankAccount(Unique, TimeTracked):
+class BankAccount(UniqueMixin, TimeTrackedMixin):
     name: Optional[str] = None
     currency: Optional[str] = None
     number: Optional[str] = None
@@ -170,7 +184,7 @@ class BankAccount(Unique, TimeTracked):
     default: Optional[bool] = None
 
 
-class NumberFormat(Unique, TimeTracked):
+class NumberFormat(UniqueMixin, TimeTrackedMixin):
     format: Optional[str] = None
     preview: Optional[str] = None
     default: Optional[bool] = None
@@ -189,7 +203,7 @@ class WebinvoiceHistory(StrEnum):
     ClientPortal = 'client_portal'
 
 
-class Subject(Model, Unique, TimeTracked):
+class Subject(UniqueMixin, TimeTrackedMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
 
@@ -197,8 +211,8 @@ class Subject(Model, Unique, TimeTracked):
     user_id: Optional[int] = None
     type: Optional[str] = None
     full_name: Optional[str] = None
-    email: Optional[Union[EmailStr, Literal[""]]]
-    email_copy: Optional[Union[EmailStr, Literal[""]]]
+    email: Optional[Union[EmailStr, Literal[""]]] = None
+    email_copy: Optional[Union[EmailStr, Literal[""]]] = None
     phone: Optional[str] = None
     web: Optional[str] = None
     street: Optional[str] = None
@@ -247,14 +261,13 @@ class Subject(Model, Unique, TimeTracked):
 
 @dataclass
 class LineInventory:
-    item_id: str
+    item_id: int
     sku: str
     article_number_type: str
-    article_article_number_type: str
     move_id: int
 
 
-class Line(Unique):
+class Line(UniqueMixin):
     name: str
     unit_price: Decimal
     unit_name: Optional[str] = None
@@ -293,10 +306,13 @@ class VatRateSummary(Model):
     native_currency: str
 
 
-class AccountingDocumentBase(Model, Unique):
+class AccountingDocumentBase(UniqueMixin):
     subject_id: int
     lines: list[Line] = Field(default_factory=lambda x: list(x))
     vat_rates_summary: list[VatRateSummary] = Field(default_factory=lambda: list())
+
+    class Meta:
+        always_include = ['subject_id']
 
 
 class Invoice(AccountingDocumentBase):
@@ -323,7 +339,7 @@ class Invoice(AccountingDocumentBase):
         return self.number
 
 
-class InventoryItem(Model, Unique):
+class InventoryItem(UniqueMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
 
@@ -359,7 +375,7 @@ class Expense(AccountingDocumentBase):
         return self.number
 
 
-class Generator(Model):
+class Generator(UniqueMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
     name: str
 
@@ -372,14 +388,3 @@ class Generator(Model):
 
     def __unicode__(self):
         return self.name
-
-
-class Message(Model):
-    """See http://docs.fakturoid.apiary.io/#reference/messages for complete field reference."""
-    subject: str
-
-    class Meta:
-        decimal: Sequence[str] = []
-
-    def __unicode__(self):
-        return self.subject

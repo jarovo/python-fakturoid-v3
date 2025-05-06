@@ -9,7 +9,8 @@ dependencies = [
   "pydantic >= 2.0",
   "pydantic[email]",
   "requests",
-  "python-dateutil"
+  "python-dateutil",
+  "deprecated"
 ]
 requires-python = ">=3.9"
 authors = [

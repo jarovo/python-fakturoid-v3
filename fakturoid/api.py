@@ -13,10 +13,21 @@ import logging
 
 import requests
 
-from fakturoid.models import Model, Account, User, BankAccount, Subject, Invoice, InventoryItem, Generator, Expense, UniqueMixin
+from fakturoid.models import (
+    Model,
+    Account,
+    User,
+    BankAccount,
+    Subject,
+    Invoice,
+    InventoryItem,
+    Generator,
+    Expense,
+    UniqueMixin,
+)
 from fakturoid.strenum import StrEnum
 
-__all__ = ['Fakturoid', 'NotFoundError']
+__all__ = ["Fakturoid", "NotFoundError"]
 
 
 LOGGER: Final = logging.getLogger("python-fakturoid-v3")
@@ -40,8 +51,8 @@ class APIResponse:
         return self._requests_response.json()
 
     def page_count(self):
-        if 'link' in self._requests_response.headers:
-            return extract_page_link(self._requests_response.headers['link'])
+        if "link" in self._requests_response.headers:
+            return extract_page_link(self._requests_response.headers["link"])
         else:
             return None
 
@@ -68,24 +79,33 @@ class APIRequest:
     @property
     def url(self):
         if self.slug:
-            return f'{self.baseurl}/accounts/{self.slug}/{self.endpoint}.json'
+            return f"{self.baseurl}/accounts/{self.slug}/{self.endpoint}.json"
         else:
-            return f'{self.baseurl}/{self.endpoint}.json'
+            return f"{self.baseurl}/{self.endpoint}.json"
 
     def send(self):
-        LOGGER.debug(f'Sending request {self}')
+        LOGGER.debug(f"Sending request {self}")
 
-        lib_response: requests.Response = getattr(requests, self.method.value)(self.url, headers=self.headers, params=self.params, data=self.data)
+        lib_response: requests.Response = getattr(requests, self.method.value)(
+            self.url, headers=self.headers, params=self.params, data=self.data
+        )
         lib_response.raise_for_status()
 
         if lib_response.status_code != self.expected_response_code:
-            LOGGER.warning(f"Expected response code: {self.expected_response_code}, got f{lib_response.status_code} for request {self}")
+            LOGGER.warning(
+                f"Expected response code: {self.expected_response_code}, got f{lib_response.status_code} for request {self}"
+            )
 
         self.api_response = APIResponse(lib_response)
         return self.api_response
 
     def set_authorization(self, user_agent: str, jwt_token: JWTToken):
-        self.headers.update({'User-Agent': user_agent, 'Authorization': jwt_token.token_type + ' ' + jwt_token.access_token})
+        self.headers.update(
+            {
+                "User-Agent": user_agent,
+                "Authorization": jwt_token.token_type + " " + jwt_token.access_token,
+            }
+        )
 
 
 class JWTToken(Model):
@@ -98,7 +118,7 @@ class JWTToken(Model):
 
     @property
     def renew_after(self):
-        """ Token is to be renewed sooner than it expires to provide a buffer time for the renewal. """
+        """Token is to be renewed sooner than it expires to provide a buffer time for the renewal."""
         return self.created_at + self.expires_in / 2
 
     @property
@@ -112,7 +132,7 @@ class JWTToken(Model):
 
     @property
     def is_expired(self):
-        """ Returns True when token had expired. """
+        """Returns True when token had expired."""
         now = datetime.now()
         assert self.created_at <= now, "Token is created in the future."
         return self.expiration_time < now
@@ -121,12 +141,13 @@ class JWTToken(Model):
 class NotFoundError(Exception):
     pass
 
-M = TypeVar('M', bound=Model)
-U = TypeVar('U', bound=UniqueMixin)
+
+M = TypeVar("M", bound=Model)
+U = TypeVar("U", bound=UniqueMixin)
 
 
 class LoadableClient(Generic[M]):
-    def __init__(self, client: Fakturoid, base_path: str,  model_cls: Type[M]):
+    def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[M]):
         self.client = client
         self.base_path = base_path
         self.model_cls = model_cls
@@ -180,7 +201,10 @@ class CollectionClient(Generic[U]):
     def update(self, instance: U) -> U:
         payload = instance.to_patch_payload()
         self.client._ensure_authenticated()
-        raw = self.client._patch(f"{self.base_path}/{instance.id}.json", payload.model_dump_json(exclude_unset=True))
+        raw = self.client._patch(
+            f"{self.base_path}/{instance.id}.json",
+            payload.model_dump_json(exclude_unset=True),
+        )
         return self.model_cls.model_validate(raw)
 
     def save(self, instance: U) -> U:
@@ -193,8 +217,10 @@ class CollectionClient(Generic[U]):
 class FakturoidError(Exception):
     pass
 
+
 class Fakturoid:
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
+
     slug: str
     client_id: str
     client_secret: str
@@ -203,31 +229,49 @@ class Fakturoid:
 
     base_url = "https://app.fakturoid.cz/api/v3"
 
-    def __init__(self, slug:str, client_id:str, client_secret: str, user_agent:str):
+    def __init__(self, slug: str, client_id: str, client_secret: str, user_agent: str):
         self.slug = slug
         self.user_agent = user_agent
         self.client_id = client_id
         self.client_secret = client_secret
 
         # Init to dummy expired token that is about to lazy renewal.
-        self._token = JWTToken(token_type='placeholder_token', access_token='', expires_in=timedelta(-1))
+        self._token = JWTToken(
+            token_type="placeholder_token", access_token="", expires_in=timedelta(-1)
+        )
 
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": self.user_agent,
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": self.user_agent,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            }
+        )
 
-        self.current_user = LoadableClient[User](self, 'user', User)
-        self.account = LoadableClient[Account](self, f'accounts/{self.slug}/account', Account)
-        self.users = CollectionClient[User](self, f'accounts/{self.slug}/users', User)
-        self.bank_accounts = CollectionClient[BankAccount](self, f'accounts/{self.slug}/bank_accounts', BankAccount)
-        self.subjects = CollectionClient[Subject](self, f'accounts/{self.slug}/subjects', Subject)
-        self.invoices = CollectionClient[Invoice](self, f'accounts/{self.slug}/invoices', Invoice)
-        self.inventory_items = CollectionClient[InventoryItem](self, f'accounts/{self.slug}/inventory_items', InventoryItem)
-        self.expenses = CollectionClient[Expense](self, f'accounts/{self.slug}/expenses', Expense)
-        self.generators = CollectionClient[Generator](self, f'accounts/{self.slug}/generators', Generator)
+        self.current_user = LoadableClient[User](self, "user", User)
+        self.account = LoadableClient[Account](
+            self, f"accounts/{self.slug}/account", Account
+        )
+        self.users = CollectionClient[User](self, f"accounts/{self.slug}/users", User)
+        self.bank_accounts = CollectionClient[BankAccount](
+            self, f"accounts/{self.slug}/bank_accounts", BankAccount
+        )
+        self.subjects = CollectionClient[Subject](
+            self, f"accounts/{self.slug}/subjects", Subject
+        )
+        self.invoices = CollectionClient[Invoice](
+            self, f"accounts/{self.slug}/invoices", Invoice
+        )
+        self.inventory_items = CollectionClient[InventoryItem](
+            self, f"accounts/{self.slug}/inventory_items", InventoryItem
+        )
+        self.expenses = CollectionClient[Expense](
+            self, f"accounts/{self.slug}/expenses", Expense
+        )
+        self.generators = CollectionClient[Generator](
+            self, f"accounts/{self.slug}/generators", Generator
+        )
 
     def _ensure_token(self):
         if self._token.to_be_renewed:
@@ -237,11 +281,21 @@ class Fakturoid:
         return self._token
 
     def _oauth_token_client_credentials_flow(self):
-        credentials = base64.urlsafe_b64encode(b':'.join((self.client_id.encode('utf-8'), self.client_secret.encode('utf-8'))))
-        headers={'Accept': 'application/json',
-                 'User-Agent': self.user_agent,
-                 'Authorization': b'Basic ' + credentials}
-        resp = requests.post(f'{self.base_url}/oauth/token', headers=headers, data={"grant_type": "client_credentials"})
+        credentials = base64.urlsafe_b64encode(
+            b":".join(
+                (self.client_id.encode("utf-8"), self.client_secret.encode("utf-8"))
+            )
+        )
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": self.user_agent,
+            "Authorization": "Basic " + credentials.decode(),
+        }
+        resp = requests.post(
+            f"{self.base_url}/oauth/token",
+            headers=headers,
+            data={"grant_type": "client_credentials"},
+        )
         resp.raise_for_status()
         self._token = JWTToken(**resp.json())
 
@@ -250,7 +304,12 @@ class Fakturoid:
         self._set_authorization(self.user_agent, self._token)
 
     def _set_authorization(self, user_agent: str, jwt_token: JWTToken):
-        self.session.headers.update({'User-Agent': user_agent, 'Authorization': jwt_token.token_type + ' ' + jwt_token.access_token})
+        self.session.headers.update(
+            {
+                "User-Agent": user_agent,
+                "Authorization": jwt_token.token_type + " " + jwt_token.access_token,
+            }
+        )
 
     def _get(self, path: str, params=None) -> dict:
         url = f"{self.base_url}/{path}"

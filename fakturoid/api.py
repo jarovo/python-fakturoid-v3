@@ -134,11 +134,17 @@ class JWTToken(Model):
     def is_expired(self):
         """Returns True when token had expired."""
         now = datetime.now()
-        assert self.created_at <= now, "Token is created in the future."
+        assert (
+            self.created_at <= now
+        ), f"Token should be created in the past, got {self.created_at}, now is {now}"
         return self.expiration_time < now
 
 
-class NotFoundError(Exception):
+class FakturoidError(Exception):
+    pass
+
+
+class NotFoundError(FakturoidError):
     pass
 
 
@@ -159,6 +165,8 @@ class LoadableClient(Generic[M]):
 
 
 class CollectionClient(Generic[U]):
+    PER_PAGE: Final[int] = 40
+
     def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[U]):
         self.client = client
         self.base_path = base_path
@@ -175,9 +183,31 @@ class CollectionClient(Generic[U]):
         return obj
 
     def list(self, **params) -> List[U]:
+        return list(self._paginated(f"{self.base_path}.json", **params))
+
+    def search(self, **params) -> List[U]:
+        return list(self._paginated(f"{self.base_path}/search.json", **params))
+
+    def _paginated(self, path, **params) -> typing.Generator[U, None, None]:
         self.client._ensure_authenticated()
-        results = self.client._get(self.base_path + ".json", params=params)
-        return [self._bind(self.model_cls.model_validate(item)) for item in results]
+        page = 1
+        per_page = 40  # Fixed number of items per page
+
+        while True:
+            # Include the `page` parameter in the request
+            paged_params = {**params, "page": page}
+            response = list(
+                self.client._get(f"{self.base_path}.json", params=paged_params)
+            )
+
+            # Yield each item from the current page
+            for item in response:
+                yield self._bind(self.model_cls.model_validate(item))
+
+            if per_page > len(response):
+                break  # Stop if no results are returned
+
+            page += 1  # Increment page number to fetch the next page
 
     def create(self, instance: U) -> U:
         self.client._ensure_authenticated()
@@ -190,10 +220,16 @@ class CollectionClient(Generic[U]):
         response = self.client.session.delete(
             f"{self.client.base_url}/{self.base_path}/{instance_id}.json"
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as err:
+            fakturoid_error = FakturoidError(
+                f"Couldn't delete {instance_id}. {response.text}"
+            )
+            raise fakturoid_error from err
 
     def find(self, **kwargs) -> typing.Generator[U]:
-        all_items = self.list()
+        all_items = self.list(**kwargs)
         for item in all_items:
             if all(getattr(item, k, None) == v for k, v in kwargs.items()):
                 yield item
@@ -212,10 +248,6 @@ class CollectionClient(Generic[U]):
             return self.update(instance)
         else:
             return self.create(instance)
-
-
-class FakturoidError(Exception):
-    pass
 
 
 class Fakturoid:

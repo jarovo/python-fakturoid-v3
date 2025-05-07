@@ -7,11 +7,10 @@ from pydantic import Field, BaseModel, EmailStr, AnyUrl, PrivateAttr
 
 from fakturoid.strenum import StrEnum
 
-__all__ = ['Account', 'Subject', 'Line', 'Invoice', 'Generator',
-           'Expense']
+__all__ = ["Account", "Subject", "Line", "Invoice", "Generator", "Expense"]
 
 
-LOGGER = logging.getLogger('python-fakturoid-v3-model')
+LOGGER = logging.getLogger("python-fakturoid-v3-model")
 
 
 class Model(BaseModel):
@@ -22,7 +21,7 @@ class Model(BaseModel):
 
     def __init__(self, **data):
         super().__init__(**data)
-        object.__setattr__(self, '__original_data__', self.model_dump())
+        object.__setattr__(self, "__original_data__", self.model_dump())
 
     def changed_fields(self) -> dict[str, Any]:
         # Start with changed values (unset or default-excluded)
@@ -45,7 +44,6 @@ class Model(BaseModel):
         return "<{0}>".format(self.__class__.__name__)
 
 
-
 class UniqueMixin(Model):
     id: Optional[int] = Field(default_factory=lambda: None, exclude=False)
 
@@ -62,45 +60,45 @@ class AllowedScope(StrEnum):
 
 
 class VATMode(StrEnum):
-    VATPayer = 'vat_payer'
-    NonVATPayer = 'non_vat_payer'
-    IdentifiedPerson = 'identified_person'
+    VATPayer = "vat_payer"
+    NonVATPayer = "non_vat_payer"
+    IdentifiedPerson = "identified_person"
 
 
 class VATPriceMode(StrEnum):
-    WithVAT = 'with_vat'
-    WithoutVAT = 'without_vat'
-    NumericalWithVAT = 'numerical_with_vat'
-    FromTotalWithVAT = 'from_total_with_vat'
+    WithVAT = "with_vat"
+    WithoutVAT = "without_vat"
+    NumericalWithVAT = "numerical_with_vat"
+    FromTotalWithVAT = "from_total_with_vat"
 
 
 class Language(StrEnum):
-    CZ = 'cz'
-    SK = 'SK'
-    EN = 'EN'
-    DE = 'DE'
-    FR = 'FR'
-    IT = 'IT'
-    ES = 'ES'
-    RU = 'RU'
-    PL = 'PL'
-    HU = 'HU'
-    RO = 'RO'
+    CZ = "cz"
+    SK = "SK"
+    EN = "EN"
+    DE = "DE"
+    FR = "FR"
+    IT = "IT"
+    ES = "ES"
+    RU = "RU"
+    PL = "PL"
+    HU = "HU"
+    RO = "RO"
 
 
 class InvoicePaymentMethod(StrEnum):
-    Bank = 'bank'
-    Card = 'card'
-    Cash = 'cash'
-    COD = 'cod'
-    PayPal = 'paypal'
+    Bank = "bank"
+    Card = "card"
+    Cash = "cash"
+    COD = "cod"
+    PayPal = "paypal"
 
 
 class HidingPaymentTypes(StrEnum):
-    Card = 'card'
-    Cash = 'cash'
-    Cod = 'cod'
-    PayPal = 'paypal'
+    Card = "card"
+    Cash = "cash"
+    Cod = "cod"
+    PayPal = "paypal"
 
 
 class DefaultEstimate(StrEnum):
@@ -110,10 +108,11 @@ class DefaultEstimate(StrEnum):
 
 class Account(TimeTrackedMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
+
     subdomain: Optional[str] = None
     plan: Optional[str] = None
     plan_price: Optional[Decimal] = None
-    plan_paid_users : Optional[int] = None
+    plan_paid_users: Optional[int] = None
     invoice_email: Optional[EmailStr] = None
     phone: Optional[str] = None
     web: Optional[AnyUrl] = None
@@ -178,7 +177,7 @@ class BankAccount(UniqueMixin, TimeTrackedMixin):
     number: Optional[str] = None
     iban: Optional[str] = None
     swift_bic: Optional[str] = None
-    pairing:  Optional[bool] = None
+    pairing: Optional[bool] = None
     expense_pairing: Optional[bool] = None
     payment_adjustment: Optional[bool] = None
     default: Optional[bool] = None
@@ -191,20 +190,21 @@ class NumberFormat(UniqueMixin, TimeTrackedMixin):
 
 
 class Inherswitch(StrEnum):
-    Inherit = 'inherit'
-    On = 'On'
-    Off = 'Off'
+    Inherit = "inherit"
+    On = "On"
+    Off = "Off"
 
 
 class WebinvoiceHistory(StrEnum):
     Null = None
-    Disabled = 'disabled'
-    Recent = 'recent'
-    ClientPortal = 'client_portal'
+    Disabled = "disabled"
+    Recent = "recent"
+    ClientPortal = "client_portal"
 
 
 class Subject(UniqueMixin, TimeTrackedMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
+
     name: str
 
     custom_id: Optional[str] = None
@@ -253,7 +253,15 @@ class Subject(UniqueMixin, TimeTrackedMixin):
     url: Optional[AnyUrl] = None
 
     class Meta:
-        readonly = ['id', 'user_id', 'unreliable', 'unreliable_checked_at', 'html_url', 'url', 'created_at' 'updated_at']
+        readonly = [
+            "id",
+            "user_id",
+            "unreliable",
+            "unreliable_checked_at",
+            "html_url",
+            "url",
+            "created_at" "updated_at",
+        ]
 
     def __unicode__(self):
         return self.name
@@ -263,7 +271,7 @@ class Subject(UniqueMixin, TimeTrackedMixin):
 class LineInventory:
     item_id: int
     sku: str
-    article_number_type: str
+    article_number_type: Optional[str]
     move_id: int
 
 
@@ -284,7 +292,7 @@ class Line(UniqueMixin):
 
     class Meta:
         readonly: list[str] = []  # no id here, to correct update
-        decimal = ['quantity', 'unit_price']
+        decimal = ["quantity", "unit_price"]
 
     def __unicode__(self):
         if self.unit_name:
@@ -310,9 +318,10 @@ class AccountingDocumentBase(UniqueMixin):
     subject_id: int
     lines: list[Line] = Field(default_factory=lambda x: list(x))
     vat_rates_summary: list[VatRateSummary] = Field(default_factory=lambda: list())
+    tags: Optional[set[str]] = None
 
     class Meta:
-        always_include = ['subject_id']
+        always_include = ["subject_id"]
 
 
 class Invoice(AccountingDocumentBase):
@@ -322,17 +331,35 @@ class Invoice(AccountingDocumentBase):
 
     class Meta:
         readonly = [
-            'id', 'token', 'status', 'due_on',
-            'sent_at', 'paid_at', 'reminder_sent_at', 'accepted_at', 'canceled_at',
-            'subtotal', 'native_subtotal', 'total', 'native_total',
-            'remaining_amount', 'remaining_native_amount',
-            'html_url', 'public_html_url', 'url', 'updated_at',
-            'subject_url'
+            "id",
+            "token",
+            "status",
+            "due_on",
+            "sent_at",
+            "paid_at",
+            "reminder_sent_at",
+            "accepted_at",
+            "canceled_at",
+            "subtotal",
+            "native_subtotal",
+            "total",
+            "native_total",
+            "remaining_amount",
+            "remaining_native_amount",
+            "html_url",
+            "public_html_url",
+            "url",
+            "updated_at",
+            "subject_url",
         ]
         decimal = [
-            'exchange_rate', 'subtotal', 'total',
-            'native_subtotal', 'native_total', 'remaining_amount',
-            'remaining_native_amount'
+            "exchange_rate",
+            "subtotal",
+            "total",
+            "native_subtotal",
+            "native_total",
+            "remaining_amount",
+            "remaining_native_amount",
         ]
 
     def __unicode__(self):
@@ -341,13 +368,14 @@ class Invoice(AccountingDocumentBase):
 
 class InventoryItem(UniqueMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
+
     name: str
 
     class Meta:
-        readonly = 'id'
-        writeable = 'name sku article_number_type article_number unit_name vat_rate supply_type private_note suggest_for'.split()
-        boolean = ['track_quantity', 'allow_below_zero']
-        decimal = 'quantity min_quantity max_quantity native_purchase_price native_retail_price'.split()
+        readonly = "id"
+        writeable = "name sku article_number_type article_number unit_name vat_rate supply_type private_note suggest_for".split()
+        boolean = ["track_quantity", "allow_below_zero"]
+        decimal = "quantity min_quantity max_quantity native_purchase_price native_retail_price".split()
 
     def __unicode__(self):
         return self.name
@@ -360,15 +388,32 @@ class Expense(AccountingDocumentBase):
 
     class Meta:
         readonly = [
-            'id', 'supplier_name', 'supplier_street', 'supplier_city',
-            'supplier_zip', 'supplier_country', 'supplier_registration_no',
-            'supplier_vat_no', 'status', 'paid_on', 'subtotal', 'total',
-            'native_subtotal', 'native_total', 'html_url', 'url', 'subject_url',
-            'created_at', 'updated_at'
+            "id",
+            "supplier_name",
+            "supplier_street",
+            "supplier_city",
+            "supplier_zip",
+            "supplier_country",
+            "supplier_registration_no",
+            "supplier_vat_no",
+            "status",
+            "paid_on",
+            "subtotal",
+            "total",
+            "native_subtotal",
+            "native_total",
+            "html_url",
+            "url",
+            "subject_url",
+            "created_at",
+            "updated_at",
         ]
         decimal = [
-            'exchange_rate', 'subtotal', 'total',
-            'native_subtotal', 'native_total'
+            "exchange_rate",
+            "subtotal",
+            "total",
+            "native_subtotal",
+            "native_total",
         ]
 
     def __unicode__(self):
@@ -377,14 +422,28 @@ class Expense(AccountingDocumentBase):
 
 class Generator(UniqueMixin):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
+
     name: str
 
     class Meta:
         readonly = [
-            'id', 'subtotal', 'native_subtotal', 'total', 'native_total',
-            'html_url', 'url', 'subject_url', 'updated_at'
+            "id",
+            "subtotal",
+            "native_subtotal",
+            "total",
+            "native_total",
+            "html_url",
+            "url",
+            "subject_url",
+            "updated_at",
         ]
-        decimal = ['exchange_rate', 'subtotal', 'total', 'native_subtotal', 'native_total']
+        decimal = [
+            "exchange_rate",
+            "subtotal",
+            "total",
+            "native_subtotal",
+            "native_total",
+        ]
 
     def __unicode__(self):
         return self.name

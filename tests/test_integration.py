@@ -4,13 +4,16 @@ from fakturoid import Fakturoid, Invoice, Subject, Line, NotFoundError
 import uuid
 from decimal import Decimal
 from tests import conf
+from unittest import TestCase
 
 
 def login():
-    fa = Fakturoid(conf.FAKTUROID_SLUG,
-                   conf.FAKTUROID_CLIENT_ID,
-                   conf.FAKTUROID_CLIENT_SECRET,
-                   conf.TESTS_OBJECTS_NAME_PREFIX)
+    fa = Fakturoid(
+        conf.FAKTUROID_SLUG,
+        conf.FAKTUROID_CLIENT_ID,
+        conf.FAKTUROID_CLIENT_SECRET,
+        conf.TESTS_OBJECTS_NAME_PREFIX,
+    )
     return fa
 
 
@@ -22,7 +25,7 @@ def test_login():
 
 
 def prefixed_name():
-    return '-'.join((conf.TESTS_OBJECTS_NAME_PREFIX, str(uuid.uuid1())))
+    return "-".join((conf.TESTS_OBJECTS_NAME_PREFIX, str(uuid.uuid1())))
 
 
 @pytest.fixture
@@ -63,20 +66,50 @@ def test_crud_subject(fa_cli: Fakturoid):
     assert again_updated_subject.id
     fa_cli.subjects.delete(again_updated_subject.id)
     found_items = list(fa_cli.subjects.find(email=subject_email))
-    assert not any(found_item.id == again_updated_subject.id for found_item in found_items)
+    assert not any(
+        found_item.id == again_updated_subject.id for found_item in found_items
+    )
 
 
 def test_crud_invoice(fa_cli: Fakturoid, subject: Subject):
-    created_invoice = fa_cli.invoices.save(Invoice(subject_id=subject.id, lines=[Line(name=prefixed_name(), unit_price=Decimal(1))]))
+    assert subject.id
+    created_invoice = fa_cli.invoices.save(
+        Invoice(
+            subject_id=subject.id,
+            lines=[Line(name=prefixed_name(), unit_price=Decimal(1))],
+        )
+    )
+    assert created_invoice.id
     by_id_invoice = fa_cli.invoices.get(id=created_invoice.id)
     by_number_invoice = list(fa_cli.invoices.find(number=created_invoice.number))[0]
-
     assert by_id_invoice == by_number_invoice
     assert by_id_invoice.id == by_number_invoice.id
     assert by_id_invoice.number == by_number_invoice.number
 
-    created_invoice.lines.append(Line(name=prefixed_name(), quantity=2, unit_price=2))
+    created_invoice.lines.append(
+        Line(name=prefixed_name(), quantity=Decimal(2), unit_price=Decimal(2))
+    )
     updated_invoice = fa_cli.invoices.save(created_invoice)
     assert updated_invoice.lines[1].quantity == 2
     assert fa_cli.invoices.get(id=created_invoice.id).lines[1].quantity == 2
     fa_cli.invoices.delete(created_invoice.id)
+
+
+class PaginationTest(TestCase):
+    def setUp(self):
+        self.fa_cli = login()
+        self.TEST_ITEMS_COUNT = 60
+        self.tag = f"{prefixed_name()}-test-subjects"
+        self.test_subjects = [
+            self.fa_cli.subjects.create(Subject(name=prefixed_name(), tag=self.tag))
+            for i in range(self.TEST_ITEMS_COUNT)
+        ]
+
+    def tearDown(self):
+        for test_item in self.test_subjects:
+            self.fa_cli.subjects.delete(test_item.id)
+
+    def test_pagination(self):
+        assert set(
+            i.id for i in self.fa_cli.subjects.search(tags=set(self.tag))
+        ) == set(i.id for i in self.test_subjects)

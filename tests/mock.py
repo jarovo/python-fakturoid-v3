@@ -5,7 +5,7 @@ import json
 class FakeResponse(object):
     status_code = 200
     text = None
-    headers = []
+    headers: dict[str, str] = {}
 
     def __init__(self, text):
         self.text = text
@@ -18,5 +18,5 @@ class FakeResponse(object):
 
 
 def response(name):
-    content = open(os.path.join(os.path.dirname(__file__), 'responses', name)).read()
+    content = open(os.path.join(os.path.dirname(__file__), "responses", name)).read()
     return FakeResponse(content)

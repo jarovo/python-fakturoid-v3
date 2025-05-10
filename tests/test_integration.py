@@ -7,6 +7,11 @@ from tests import conf
 from unittest import TestCase
 
 
+@pytest.fixture(scope="module")
+def vcr_config():
+    return {"decode_compressed_response": True, "filter_headers": ["authorization"]}
+
+
 def login():
     fa = Fakturoid(
         conf.FAKTUROID_SLUG,
@@ -24,8 +29,9 @@ def test_login():
     assert account.name
 
 
-def prefixed_name():
-    return "-".join((conf.TESTS_OBJECTS_NAME_PREFIX, str(uuid.uuid1())))
+def prefixed_name(counter=0):
+    counter += 1
+    return f"{conf.TESTS_OBJECTS_NAME_PREFIX}-{counter}"
 
 
 @pytest.fixture
@@ -44,6 +50,7 @@ def subject(fa_cli: Fakturoid):
         fa_cli.subjects.get(id=created_subject.id)
 
 
+@pytest.mark.vcr
 def test_crud_subject(fa_cli: Fakturoid):
     subject_name = prefixed_name()
     created_subject = fa_cli.subjects.save(Subject(name=subject_name))
@@ -71,6 +78,7 @@ def test_crud_subject(fa_cli: Fakturoid):
     )
 
 
+@pytest.mark.vcr
 def test_crud_invoice(fa_cli: Fakturoid, subject: Subject):
     assert subject.id
     created_invoice = fa_cli.invoices.save(
@@ -101,7 +109,7 @@ class PaginationTest(TestCase):
         self.TEST_ITEMS_COUNT = 60
         self.tag = f"{prefixed_name()}-test-subjects"
         self.test_subjects = [
-            self.fa_cli.subjects.create(Subject(name=prefixed_name(), tag=self.tag))
+            self.fa_cli.subjects.create(Subject(name=prefixed_name()))
             for i in range(self.TEST_ITEMS_COUNT)
         ]
 
@@ -109,7 +117,8 @@ class PaginationTest(TestCase):
         for test_item in self.test_subjects:
             self.fa_cli.subjects.delete(test_item.id)
 
+    @pytest.mark.vcr
     def test_pagination(self):
-        assert set(
-            i.id for i in self.fa_cli.subjects.search(tags=set(self.tag))
-        ) == set(i.id for i in self.test_subjects)
+        found_items = set(i.id for i in self.fa_cli.subjects.list())
+        created_items = set(i.id for i in self.test_subjects)
+        assert found_items == created_items

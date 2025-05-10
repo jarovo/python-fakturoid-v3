@@ -9,7 +9,7 @@ from functools import wraps
 from pydantic import TypeAdapter
 import base64
 import logging
-
+from string import Template
 
 import requests
 
@@ -24,6 +24,8 @@ from fakturoid.models import (
     Generator,
     Expense,
     UniqueMixin,
+    InvoiceAction,
+    LockableAction,
 )
 from fakturoid.strenum import StrEnum
 
@@ -47,65 +49,8 @@ class APIResponse:
     def __init__(self, requests_response: requests.Response):
         self._requests_response = requests_response
 
-    def from_json(self):
+    def json(self):
         return self._requests_response.json()
-
-    def page_count(self):
-        if "link" in self._requests_response.headers:
-            return extract_page_link(self._requests_response.headers["link"])
-        else:
-            return None
-
-
-class RequestMethod(StrEnum):
-    Get = "get"
-    Post = "post"
-    Put = "put"
-    Delete = "delete"
-
-
-@dataclass
-class APIRequest:
-    method: RequestMethod
-    expected_response_code: int
-    baseurl: str
-    endpoint: str
-    slug: Optional[str] = None
-    headers: dict[str, str] = field(default_factory=dict)
-    params: dict[str, str] = field(default_factory=dict)
-    data: Optional[Model] = None
-    api_response: Optional[APIResponse] = field(init=False, default=None)
-
-    @property
-    def url(self):
-        if self.slug:
-            return f"{self.baseurl}/accounts/{self.slug}/{self.endpoint}.json"
-        else:
-            return f"{self.baseurl}/{self.endpoint}.json"
-
-    def send(self):
-        LOGGER.debug(f"Sending request {self}")
-
-        lib_response: requests.Response = getattr(requests, self.method.value)(
-            self.url, headers=self.headers, params=self.params, data=self.data
-        )
-        lib_response.raise_for_status()
-
-        if lib_response.status_code != self.expected_response_code:
-            LOGGER.warning(
-                f"Expected response code: {self.expected_response_code}, got f{lib_response.status_code} for request {self}"
-            )
-
-        self.api_response = APIResponse(lib_response)
-        return self.api_response
-
-    def set_authorization(self, user_agent: str, jwt_token: JWTToken):
-        self.headers.update(
-            {
-                "User-Agent": user_agent,
-                "Authorization": jwt_token.token_type + " " + jwt_token.access_token,
-            }
-        )
 
 
 class JWTToken(Model):
@@ -152,22 +97,28 @@ M = TypeVar("M", bound=Model)
 U = TypeVar("U", bound=UniqueMixin)
 
 
-class LoadableClient(Generic[M]):
-    def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[M]):
+class APIBase:
+    def __init__(self, client: Fakturoid):
         self.client = client
-        self.base_path = base_path
+
+
+class LoadableAPI(APIBase, Generic[M]):
+    def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[M]):
+        super().__init__(client=client)
         self.model_cls = model_cls
+        self.base_path = base_path
 
     def load(self) -> M:
         self.client._ensure_authenticated()
-        raw = self.client._get(f"{self.base_path}.json")
+        raw = self.client._get(f"{self.base_path}.json").json()
         return self.model_cls.model_validate(raw)
 
 
-class CollectionClient(Generic[U]):
+class CollectionAPI(APIBase, Generic[U]):
     PER_PAGE: Final[int] = 40
 
     def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[U]):
+        super().__init__(client=client)
         self.client = client
         self.base_path = base_path
         self.model_cls = model_cls
@@ -175,7 +126,7 @@ class CollectionClient(Generic[U]):
     def get(self, id: int) -> U:
         self.client._ensure_authenticated()
         raw = self.client._get(f"{self.base_path}/{id}.json")
-        return self._bind(self.model_cls.model_validate(raw))
+        return self._bind(self.model_cls.model_validate(raw.json()))
 
     def _bind(self, obj: U) -> U:
         if isinstance(obj, Model):
@@ -197,7 +148,7 @@ class CollectionClient(Generic[U]):
             # Include the `page` parameter in the request
             paged_params = {**params, "page": page}
             response = list(
-                self.client._get(f"{self.base_path}.json", params=paged_params)
+                self.client._get(f"{self.base_path}.json", params=paged_params).json()
             )
 
             # Yield each item from the current page
@@ -213,7 +164,7 @@ class CollectionClient(Generic[U]):
         self.client._ensure_authenticated()
         json_str = instance.model_dump_json(exclude_unset=True)
         raw = self.client._post(f"{self.base_path}.json", json_str)
-        return self.model_cls.model_validate(raw)
+        return self.model_cls.model_validate(raw.json())
 
     def delete(self, instance_id: int) -> None:
         self.client._ensure_authenticated()
@@ -241,13 +192,27 @@ class CollectionClient(Generic[U]):
             f"{self.base_path}/{instance.id}.json",
             payload.model_dump_json(exclude_unset=True),
         )
-        return self.model_cls.model_validate(raw)
+        return self.model_cls.model_validate(raw.json())
 
     def save(self, instance: U) -> U:
         if instance.id:
             return self.update(instance)
         else:
             return self.create(instance)
+
+
+A = TypeVar("A", bound=StrEnum)
+
+
+class ActionClient(APIBase, Generic[A]):
+    def __init__(self, client: Fakturoid, url_template: Template):
+        super().__init__(client)
+        self.url_template = url_template
+
+    def fire(self, id: int, action: A):
+        substitutes = dict(id=id, slug=self.client.slug)
+        url = self.url_template.safe_substitute(substitutes)
+        self.client._post(url, data="", params={"event": action.value})
 
 
 class Fakturoid:
@@ -281,27 +246,33 @@ class Fakturoid:
             }
         )
 
-        self.current_user = LoadableClient[User](self, "user", User)
-        self.account = LoadableClient[Account](
+        self.current_user = LoadableAPI[User](self, "user", User)
+        self.account = LoadableAPI[Account](
             self, f"accounts/{self.slug}/account", Account
         )
-        self.users = CollectionClient[User](self, f"accounts/{self.slug}/users", User)
-        self.bank_accounts = CollectionClient[BankAccount](
+        self.users = CollectionAPI[User](self, f"accounts/{self.slug}/users", User)
+        self.bank_accounts = CollectionAPI[BankAccount](
             self, f"accounts/{self.slug}/bank_accounts", BankAccount
         )
-        self.subjects = CollectionClient[Subject](
+        self.subjects = CollectionAPI[Subject](
             self, f"accounts/{self.slug}/subjects", Subject
         )
-        self.invoices = CollectionClient[Invoice](
+        self.invoices = CollectionAPI[Invoice](
             self, f"accounts/{self.slug}/invoices", Invoice
         )
-        self.inventory_items = CollectionClient[InventoryItem](
+        self.invoice_event = ActionClient[InvoiceAction](
+            self, Template("accounts/${slug}/invoices/${id}/fire.json")
+        )
+        self.inventory_items = CollectionAPI[InventoryItem](
             self, f"accounts/{self.slug}/inventory_items", InventoryItem
         )
-        self.expenses = CollectionClient[Expense](
+        self.expenses = CollectionAPI[Expense](
             self, f"accounts/{self.slug}/expenses", Expense
         )
-        self.generators = CollectionClient[Generator](
+        self.expense_event = ActionClient[LockableAction](
+            self, Template("${base_url}/accounts/${slug}/expenses/${id}")
+        )
+        self.generators = CollectionAPI[Generator](
             self, f"accounts/{self.slug}/generators", Generator
         )
 
@@ -343,23 +314,25 @@ class Fakturoid:
             }
         )
 
-    def _get(self, path: str, params=None) -> dict:
+    def _get(self, path: str, params=None) -> APIResponse:
         url = f"{self.base_url}/{path}"
         response = self.session.get(url, params=params)
         if response.status_code == 404:
             raise NotFoundError(f"url={url}")
         else:
             response.raise_for_status()
-        return response.json()
+        return APIResponse(response)
 
-    def _post(self, path: str, data: str) -> dict:
+    def _post(
+        self, path: str, data: str, params: Optional[dict[str, str]] = None
+    ) -> APIResponse:
         url = f"{self.base_url}/{path}"
-        response = self.session.post(url, data=data)
+        response = self.session.post(url, data=data, params=params)
         response.raise_for_status()
-        return response.json()
+        return APIResponse(response)
 
-    def _patch(self, path: str, json_str: str) -> dict:
+    def _patch(self, path: str, json_str: str) -> APIResponse:
         self._ensure_authenticated()
         response = self.session.patch(f"{self.base_url}/{path}", data=json_str)
         response.raise_for_status()
-        return response.json()
+        return APIResponse(response)

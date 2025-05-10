@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock
 from decimal import Decimal
 
 from fakturoid.api import Fakturoid
+from fakturoid.models import InvoiceAction, LockableAction
 
 from tests.mock import response, FakeResponse
 from pytest import fixture
@@ -132,21 +133,17 @@ class InvoiceTestCase(FakturoidTestCase):
         with patch.object(
             self.fa.session, "post", return_value=FakeResponse("")
         ) as mock:
-            self.fa.fire_invoice_event(9, "pay")
+            self.fa.invoice_event.fire(9, InvoiceAction.Cancel)
 
         mock.assert_called_once_with(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json",
-            headers={
-                "User-Agent": self.fa.user_agent,
-                "Authorization": "Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c",
-            },
-            params={"event": "pay"},
+            params={"event": "cancel"},
             data=None,
         )
 
     def test_save_update_line(self):
-        get_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Nails","quantity":"10","unit_name":"ks","unit_price":"1.2"}],"number":"2025-01-01"}'
-        new_response_text = '{"id":1,"subject_id":1,"lines":[{"id":1000,"name":"Wire","unit_price":"13.2","unit_name":"meter","quantity":"10"}],"number":"2025-01-01"}'
+        get_response_text = '{"id":1,"subject_id":1,"number":"2025-01-01","lines":[{"id":1000,"name":"Nails","quantity":"10","unit_name":"ks","unit_price":"1.2"}]}'
+        new_response_text = '{"id":1,"subject_id":1,"number":"2025-01-01","lines":[{"id":1000,"name":"Wire","unit_price":"13.2","unit_name":"meter","quantity":"10"}]}'
 
         with patch.object(
             self.fa.session, "get", return_value=FakeResponse(get_response_text)
@@ -168,22 +165,6 @@ class InvoiceTestCase(FakturoidTestCase):
         put_mock.assert_called_once_with(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/1.json",
             data=new_response_text,
-        )
-
-    def test_fire_with_args(self):
-        with patch.object(
-            self.fa.session, "post", return_value=FakeResponse("")
-        ) as mock:
-            self.fa.fire_invoice_event(9, "pay", paid_at=date(2018, 11, 19))
-
-        mock.assert_called_once_with(
-            "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json",
-            headers={
-                "User-Agent": self.fa.user_agent,
-                "Authorization": "Bearer 63cfcf07492268ab0e3c58e9fa48096dc5bf0a9b7bbd2f6f45e0a6fa9fc2074a4523af3538f0df5c",
-            },
-            params={"event": "pay", "paid_at": "2018-11-19"},
-            data=None,
         )
 
     def test_list(self):
@@ -233,7 +214,7 @@ class GeneratorTestCase(FakturoidTestCase):
         with patch.object(
             self.fa.session, "get", return_value=response("generator_4.json")
         ) as mock:
-            g = self.fa.generator(4)
+            g = self.fa.generators.get(4)
 
         self.assertEqual(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/generators/4.json",

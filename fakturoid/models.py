@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Optional, Union, Literal, Any
+from typing import Optional, Union, Literal, Any, Sequence
 from decimal import Decimal
 from pydantic.dataclasses import dataclass
 from pydantic import Field, BaseModel, EmailStr, AnyUrl, PrivateAttr
@@ -42,6 +42,9 @@ class Model(BaseModel):
 
     def __unicode__(self):
         return "<{0}>".format(self.__class__.__name__)
+
+
+Currency = str
 
 
 class UniqueMixin(Model):
@@ -86,7 +89,7 @@ class Language(StrEnum):
     RO = "RO"
 
 
-class InvoicePaymentMethod(StrEnum):
+class PaymentMethod(StrEnum):
     Bank = "bank"
     Card = "card"
     Cash = "cash"
@@ -127,14 +130,14 @@ class Account(TimeTrackedMixin):
     city: Optional[str] = None
     zip: Optional[str] = None
     country: Optional[str] = None
-    currency: Optional[str] = None
+    currency: Optional[Currency] = None
     unit_name: Optional[str] = None
     vat_rate: Optional[int] = None
     displayed_note: Optional[str] = None
     invoice_note: Optional[str] = None
     due: Optional[int] = None
     invoice_language: Optional[Language] = None
-    invoice_payment_method: Optional[InvoicePaymentMethod] = None
+    invoice_payment_method: Optional[PaymentMethod] = None
     invoice_proforma: Optional[bool] = None
     invoice_hide_bank_account_for_payments: Optional[set[HidingPaymentTypes]] = None
     fixed_exchange_rate: Optional[bool] = None
@@ -308,26 +311,84 @@ class VatRateSummary(Model):
     vat_rate: Decimal
     base: Decimal
     vat: Decimal
-    currency: str
+    currency: Currency
     native_base: Decimal
     native_vat: Decimal
-    native_currency: str
+    native_currency: Currency
 
 
 class AccountingDocumentBase(UniqueMixin):
     subject_id: int
+
+    custom_id: Optional[str] = None
+    number: Optional[str] = None
+    variable_symbol: Optional[str] = None
+
+    due_on: Optional[datetime] = None
+    paid_on: Optional[datetime] = None
+    tags: Optional[set[str]] = None
+    bank_account: Optional[str] = None
+    iban: Optional[str] = None
+    swift_bic: Optional[str] = None
+    payment_method: Optional[PaymentMethod] = None
+    custom_payment_method: Optional[str] = None
+    currency: Optional[Currency] = None
+    subtotal: Optional[Decimal] = None
+    total: Optional[Decimal] = None
+    native_subtotal: Optional[Decimal] = None
+
     lines: list[Line] = Field(default_factory=lambda x: list(x))
     vat_rates_summary: list[VatRateSummary] = Field(default_factory=lambda: list())
-    tags: Optional[set[str]] = None
 
     class Meta:
         always_include = ["subject_id"]
 
 
+class DocumentType(StrEnum):
+    PartialProforma = "partial_proforma"
+    Proforma = "proforma"
+    Correction = "correction"
+    TaxDocument = "tax_document"
+    FinalInvoice = "final_invoice"
+    Invoice = "invoice"
+
+
+class ProformaFollowupDocument(StrEnum):
+    FinalInvoicePaid = "final_invoice_paid"
+    FinalInvoice = "final_invoice"
+    TaxDocument = "tax_document"
+    None_ = "none"
+
+
+class ExpensePayment(UniqueMixin, TimeTrackedMixin):
+    paid_on: Optional[datetime] = None
+    currency: Optional[Currency] = None
+    ammount: Optional[Decimal] = None
+    native_amount: Optional[Decimal] = None
+    mark_document_as_paid: Optional[bool] = None
+    variable_symbol: Optional[str] = None
+    bank_account_id: Optional[int] = None
+
+
+class InvoicePayment(ExpensePayment):
+    proforma_followup_document: Optional[ProformaFollowupDocument] = None
+    send_thank_you_email: Optional[bool] = None
+    tax_document_id: Optional[int] = None
+
+
 class Invoice(AccountingDocumentBase):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
 
-    number: Optional[str] = None
+    document_type: Optional[DocumentType] = None
+    proforma_followup_document: Optional[ProformaFollowupDocument] = None
+    tax_document_ids: Optional[set[int]] = None
+    correction_id: Optional[int] = None
+    # number inherited from AccountingDocumentBase
+    number_format_id: Optional[int] = None
+
+    bank_account_id: Optional[int] = None
+
+    payments: Optional[Sequence[InvoicePayment]] = None
 
     class Meta:
         readonly = [
@@ -384,7 +445,11 @@ class InventoryItem(UniqueMixin):
 class Expense(AccountingDocumentBase):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
 
-    number: str
+    # custom_id: Inherited from AccountingDocument Base
+    # number: Inherited from AccountingDocumentBase
+    original_number: Optional[str] = None
+
+    payments: Optional[Sequence[ExpensePayment]] = None
 
     class Meta:
         readonly = [
@@ -447,3 +512,18 @@ class Generator(UniqueMixin):
 
     def __unicode__(self):
         return self.name
+
+
+class LockableAction(StrEnum):
+    Lock = "lock"
+    Unlock = "unlock"
+
+
+class InvoiceAction(StrEnum):
+    MarkAsSend = "mark_as_send"
+    Cancel = "cancel"
+    UndoCancel = "undo_cancel"
+    MarkAsCollectible = "mark_as_collectible"
+    UndoCollectible = "undo_collectible"
+    Lock = "lock"
+    Unlock = "unlock"

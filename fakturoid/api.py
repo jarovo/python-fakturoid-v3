@@ -212,7 +212,7 @@ class ActionClient(APIBase, Generic[A]):
     def fire(self, id: int, action: A):
         substitutes = dict(id=id, slug=self.client.slug)
         url = self.url_template.safe_substitute(substitutes)
-        self.client._post(url, data="", params={"event": action.value})
+        self.client._post(url, data=None, params={"event": action.value})
 
 
 class Fakturoid:
@@ -324,7 +324,7 @@ class Fakturoid:
         return APIResponse(response)
 
     def _post(
-        self, path: str, data: str, params: Optional[dict[str, str]] = None
+        self, path: str, data: str | None, params: Optional[dict[str, str]] = None
     ) -> APIResponse:
         url = f"{self.base_url}/{path}"
         response = self.session.post(url, data=data, params=params)

@@ -1,0 +1,603 @@
+interactions:
+- request:
+    body: grant_type=client_credentials
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '29'
+      Content-Type:
+      - application/x-www-form-urlencoded
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: POST
+    uri: https://app.fakturoid.cz/api/v3/oauth/token
+  response:
+    body:
+      string: '{"access_token": "DUMMY_TOKEN", "token_type": "Bearer", "expires_in":
+        7200}'
+    headers:
+      cache-control:
+      - no-store
+      content-length:
+      - '139'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      etag:
+      - W/"120b115a1f66a47e0a78aeaff3726327"
+      pragma:
+      - no-cache
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept,Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=388;t=43
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - a3734bc8-9771-4f3e-8f07-05a01932c3f4
+      x-runtime:
+      - '0.012424'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"name":"python-fakturoid-v3-test-1"}'
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '37'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: POST
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects.json
+  response:
+    body:
+      string: '{"id":26451821,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":null,"email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26451821","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json","created_at":"2025-05-11T18:08:15.159+02:00","updated_at":"2025-05-11T18:08:15.159+02:00"}'
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - max-age=0, private, must-revalidate
+      content-length:
+      - '1246'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      etag:
+      - W/"ae997f3031aade1745ba937d047f6494"
+      location:
+      - https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      set-cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff;
+        path=/; expires=Mon, 11 May 2026 16:08:15 GMT; httponly; samesite=lax; secure
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=387;t=43
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - 9e592083-442f-4bf9-9738-19f0ab1e7b38
+      x-runtime:
+      - '0.034722'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: '{"subject_id":26451821,"lines":[{"name":"python-fakturoid-v3-test-1","unit_price":"1"}]}'
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '88'
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: POST
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices.json
+  response:
+    body:
+      string: "{\"id\":47215313,\"custom_id\":null,\"document_type\":\"invoice\",\"proforma_followup_document\":null,\"correction_id\":null,\"number\":\"2025-0001\",\"number_format_id\":704078,\"variable_symbol\":\"20250001\",\"your_name\":\"fakturcall-dev\",\"your_street\":\"Bezru\u010Dova
+        688\",\"your_city\":\"Lo\u0161tice\",\"your_zip\":\"789 83\",\"your_country\":\"CZ\",\"your_registration_no\":\"\",\"your_vat_no\":\"\",\"your_local_vat_no\":null,\"client_name\":\"python-fakturoid-v3-test-1\",\"client_street\":null,\"client_city\":null,\"client_zip\":null,\"client_country\":\"CZ\",\"client_registration_no\":null,\"client_vat_no\":null,\"client_local_vat_no\":null,\"client_has_delivery_address\":false,\"client_delivery_name\":null,\"client_delivery_street\":null,\"client_delivery_city\":null,\"client_delivery_zip\":null,\"client_delivery_country\":null,\"subject_id\":26451821,\"subject_custom_id\":null,\"generator_id\":null,\"related_id\":null,\"paypal\":false,\"gopay\":false,\"token\":\"mKJUzMFQ7g\",\"status\":\"open\",\"order_number\":null,\"issued_on\":\"2025-05-11\",\"taxable_fulfillment_due\":\"2025-05-11\",\"due\":14,\"due_on\":\"2025-05-25\",\"sent_at\":null,\"paid_on\":null,\"reminder_sent_at\":null,\"cancelled_at\":null,\"uncollectible_at\":null,\"locked_at\":null,\"webinvoice_seen_on\":null,\"note\":null,\"footer_note\":\"\",\"private_note\":null,\"tags\":[],\"bank_account\":\"123456/0000\",\"iban\":\"CZ2220100000002401457211\",\"swift_bic\":\"\",\"iban_visibility\":\"automatically\",\"show_already_paid_note_in_pdf\":false,\"payment_method\":\"bank\",\"custom_payment_method\":null,\"hide_bank_account\":false,\"currency\":\"CZK\",\"exchange_rate\":\"1.0\",\"language\":\"cz\",\"transferred_tax_liability\":false,\"supply_code\":null,\"oss\":\"disabled\",\"vat_price_mode\":\"without_vat\",\"subtotal\":\"1.0\",\"total\":\"1.0\",\"native_subtotal\":\"1.0\",\"native_total\":\"1.0\",\"remaining_amount\":\"1.0\",\"remaining_native_amount\":\"1.0\",\"eet_records\":[],\"lines\":[{\"id\":113960854,\"name\":\"python-fakturoid-v3-test-1\",\"quantity\":\"1.0\",\"unit_name\":\"\",\"unit_price\":\"1.0\",\"vat_rate\":0,\"unit_price_without_vat\":\"1.0\",\"unit_price_with_vat\":\"1.0\",\"total_price_without_vat\":\"1.0\",\"total_vat\":\"0.0\",\"native_total_price_without_vat\":\"1.0\",\"native_total_vat\":0,\"inventory\":null}],\"vat_rates_summary\":[{\"vat_rate\":0,\"base\":\"1.0\",\"vat\":\"0.0\",\"currency\":\"CZK\",\"native_base\":\"1.0\",\"native_vat\":\"0.0\",\"native_currency\":\"CZK\"}],\"paid_advances\":[],\"payments\":[],\"attachments\":[],\"html_url\":\"https://app.fakturoid.cz/fakturcalldev/invoices/47215313\",\"public_html_url\":\"https://app.fakturoid.cz/fakturcalldev/p/mKJUzMFQ7g/2025-0001\",\"url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json\",\"pdf_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313/download.pdf\",\"subject_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json\",\"created_at\":\"2025-05-11T18:08:15.253+02:00\",\"updated_at\":\"2025-05-11T18:08:15.298+02:00\"}"
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - max-age=0, private, must-revalidate
+      content-length:
+      - '2787'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      etag:
+      - W/"525b4be9f73de280f872486736d8fda1"
+      location:
+      - https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=386;t=43
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - ad15782a-6a98-4b03-bab8-3b1e1e26dcb3
+      x-runtime:
+      - '0.101065'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 201
+      message: Created
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: GET
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json
+  response:
+    body:
+      string: "{\"id\":47215313,\"custom_id\":null,\"document_type\":\"invoice\",\"proforma_followup_document\":null,\"correction_id\":null,\"number\":\"2025-0001\",\"number_format_id\":704078,\"variable_symbol\":\"20250001\",\"your_name\":\"fakturcall-dev\",\"your_street\":\"Bezru\u010Dova
+        688\",\"your_city\":\"Lo\u0161tice\",\"your_zip\":\"789 83\",\"your_country\":\"CZ\",\"your_registration_no\":\"\",\"your_vat_no\":\"\",\"your_local_vat_no\":null,\"client_name\":\"python-fakturoid-v3-test-1\",\"client_street\":null,\"client_city\":null,\"client_zip\":null,\"client_country\":\"CZ\",\"client_registration_no\":null,\"client_vat_no\":null,\"client_local_vat_no\":null,\"client_has_delivery_address\":false,\"client_delivery_name\":null,\"client_delivery_street\":null,\"client_delivery_city\":null,\"client_delivery_zip\":null,\"client_delivery_country\":null,\"subject_id\":26451821,\"subject_custom_id\":null,\"generator_id\":null,\"related_id\":null,\"paypal\":false,\"gopay\":false,\"token\":\"mKJUzMFQ7g\",\"status\":\"open\",\"order_number\":null,\"issued_on\":\"2025-05-11\",\"taxable_fulfillment_due\":\"2025-05-11\",\"due\":14,\"due_on\":\"2025-05-25\",\"sent_at\":null,\"paid_on\":null,\"reminder_sent_at\":null,\"cancelled_at\":null,\"uncollectible_at\":null,\"locked_at\":null,\"webinvoice_seen_on\":null,\"note\":null,\"footer_note\":\"\",\"private_note\":null,\"tags\":[],\"bank_account\":\"123456/0000\",\"iban\":\"CZ2220100000002401457211\",\"swift_bic\":\"\",\"iban_visibility\":\"automatically\",\"show_already_paid_note_in_pdf\":false,\"payment_method\":\"bank\",\"custom_payment_method\":null,\"hide_bank_account\":false,\"currency\":\"CZK\",\"exchange_rate\":\"1.0\",\"language\":\"cz\",\"transferred_tax_liability\":false,\"supply_code\":null,\"oss\":\"disabled\",\"vat_price_mode\":\"without_vat\",\"subtotal\":\"1.0\",\"total\":\"1.0\",\"native_subtotal\":\"1.0\",\"native_total\":\"1.0\",\"remaining_amount\":\"1.0\",\"remaining_native_amount\":\"1.0\",\"eet_records\":[],\"lines\":[{\"id\":113960854,\"name\":\"python-fakturoid-v3-test-1\",\"quantity\":\"1.0\",\"unit_name\":\"\",\"unit_price\":\"1.0\",\"vat_rate\":0,\"unit_price_without_vat\":\"1.0\",\"unit_price_with_vat\":\"1.0\",\"total_price_without_vat\":\"1.0\",\"total_vat\":\"0.0\",\"native_total_price_without_vat\":\"1.0\",\"native_total_vat\":0,\"inventory\":null}],\"vat_rates_summary\":[{\"vat_rate\":0,\"base\":\"1.0\",\"vat\":\"0.0\",\"currency\":\"CZK\",\"native_base\":\"1.0\",\"native_vat\":\"0.0\",\"native_currency\":\"CZK\"}],\"paid_advances\":[],\"payments\":[],\"attachments\":[],\"html_url\":\"https://app.fakturoid.cz/fakturcalldev/invoices/47215313\",\"public_html_url\":\"https://app.fakturoid.cz/fakturcalldev/p/mKJUzMFQ7g/2025-0001\",\"url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json\",\"pdf_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313/download.pdf\",\"subject_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json\",\"created_at\":\"2025-05-11T18:08:15.253+02:00\",\"updated_at\":\"2025-05-11T18:08:15.415+02:00\"}"
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - max-age=0, private, must-revalidate
+      content-length:
+      - '2787'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      etag:
+      - W/"b6797c456e385700d4fc3709581fa62f"
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=385;t=42
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - d58df748-d7e7-4cf5-bb3d-7a5208868401
+      x-runtime:
+      - '0.027873'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: GET
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices.json?number=2025-0001&page=1
+  response:
+    body:
+      string: "[{\"id\":47215313,\"custom_id\":null,\"document_type\":\"invoice\",\"proforma_followup_document\":null,\"correction_id\":null,\"number\":\"2025-0001\",\"number_format_id\":704078,\"variable_symbol\":\"20250001\",\"your_name\":\"fakturcall-dev\",\"your_street\":\"Bezru\u010Dova
+        688\",\"your_city\":\"Lo\u0161tice\",\"your_zip\":\"789 83\",\"your_country\":\"CZ\",\"your_registration_no\":\"\",\"your_vat_no\":\"\",\"your_local_vat_no\":null,\"client_name\":\"python-fakturoid-v3-test-1\",\"client_street\":null,\"client_city\":null,\"client_zip\":null,\"client_country\":\"CZ\",\"client_registration_no\":null,\"client_vat_no\":null,\"client_local_vat_no\":null,\"client_has_delivery_address\":false,\"client_delivery_name\":null,\"client_delivery_street\":null,\"client_delivery_city\":null,\"client_delivery_zip\":null,\"client_delivery_country\":null,\"subject_id\":26451821,\"subject_custom_id\":null,\"generator_id\":null,\"related_id\":null,\"paypal\":false,\"gopay\":false,\"token\":\"mKJUzMFQ7g\",\"status\":\"open\",\"order_number\":null,\"issued_on\":\"2025-05-11\",\"taxable_fulfillment_due\":\"2025-05-11\",\"due\":14,\"due_on\":\"2025-05-25\",\"sent_at\":null,\"paid_on\":null,\"reminder_sent_at\":null,\"cancelled_at\":null,\"uncollectible_at\":null,\"locked_at\":null,\"webinvoice_seen_on\":null,\"note\":null,\"footer_note\":\"\",\"private_note\":null,\"tags\":[],\"bank_account\":\"123456/0000\",\"iban\":\"CZ2220100000002401457211\",\"swift_bic\":\"\",\"iban_visibility\":\"automatically\",\"show_already_paid_note_in_pdf\":false,\"payment_method\":\"bank\",\"custom_payment_method\":null,\"hide_bank_account\":false,\"currency\":\"CZK\",\"exchange_rate\":\"1.0\",\"language\":\"cz\",\"transferred_tax_liability\":false,\"supply_code\":null,\"oss\":\"disabled\",\"vat_price_mode\":\"without_vat\",\"subtotal\":\"1.0\",\"total\":\"1.0\",\"native_subtotal\":\"1.0\",\"native_total\":\"1.0\",\"remaining_amount\":\"1.0\",\"remaining_native_amount\":\"1.0\",\"eet_records\":[],\"lines\":[{\"id\":113960854,\"name\":\"python-fakturoid-v3-test-1\",\"quantity\":\"1.0\",\"unit_name\":\"\",\"unit_price\":\"1.0\",\"vat_rate\":0,\"unit_price_without_vat\":\"1.0\",\"unit_price_with_vat\":\"1.0\",\"total_price_without_vat\":\"1.0\",\"total_vat\":\"0.0\",\"native_total_price_without_vat\":\"1.0\",\"native_total_vat\":0,\"inventory\":null}],\"vat_rates_summary\":[{\"vat_rate\":0,\"base\":\"1.0\",\"vat\":\"0.0\",\"currency\":\"CZK\",\"native_base\":\"1.0\",\"native_vat\":\"0.0\",\"native_currency\":\"CZK\"}],\"paid_advances\":[],\"payments\":[],\"attachments\":[],\"html_url\":\"https://app.fakturoid.cz/fakturcalldev/invoices/47215313\",\"public_html_url\":\"https://app.fakturoid.cz/fakturcalldev/p/mKJUzMFQ7g/2025-0001\",\"url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json\",\"pdf_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313/download.pdf\",\"subject_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json\",\"created_at\":\"2025-05-11T18:08:15.253+02:00\",\"updated_at\":\"2025-05-11T18:08:15.415+02:00\"}]"
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - max-age=0, private, must-revalidate
+      content-length:
+      - '2789'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      etag:
+      - W/"99ed0ac16b833420319bf6195a57d6c9"
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=384;t=42
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - 5a96568a-a5b6-4839-a6cf-e4bb9385dfd6
+      x-runtime:
+      - '0.036208'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: '{"id":47215313,"subject_id":26451821,"number":"2025-0001","variable_symbol":"20250001","due_on":"2025-05-25T00:00:00","tags":[],"bank_account":"123456/0000","iban":"CZ2220100000002401457211","swift_bic":"","payment_method":"bank","currency":"CZK","subtotal":"1.0","total":"1.0","native_subtotal":"1.0","lines":[{"id":113960854,"name":"python-fakturoid-v3-test-1","unit_price":"1.0","unit_name":"","quantity":"1.0","unit_price_without_vat":"1.0","unit_price_with_vat":"1.0","total_price_without_vat":"1.0","total_vat":"0.0","native_total_price_without_vat":"1.0","native_total_vat":"0"},{"name":"python-fakturoid-v3-test-1","unit_price":"2","quantity":"2"}],"vat_rates_summary":[{"vat_rate":"0","base":"1.0","vat":"0.0","currency":"CZK","native_base":"1.0","native_vat":"0.0","native_currency":"CZK"}],"document_type":"invoice","number_format_id":704078,"payments":[]}'
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '867'
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: PATCH
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json
+  response:
+    body:
+      string: "{\"id\":47215313,\"custom_id\":null,\"document_type\":\"invoice\",\"proforma_followup_document\":null,\"correction_id\":null,\"number\":\"2025-0001\",\"number_format_id\":704078,\"variable_symbol\":\"20250001\",\"your_name\":\"fakturcall-dev\",\"your_street\":\"Bezru\u010Dova
+        688\",\"your_city\":\"Lo\u0161tice\",\"your_zip\":\"789 83\",\"your_country\":\"CZ\",\"your_registration_no\":\"\",\"your_vat_no\":\"\",\"your_local_vat_no\":null,\"client_name\":\"python-fakturoid-v3-test-1\",\"client_street\":null,\"client_city\":null,\"client_zip\":null,\"client_country\":\"CZ\",\"client_registration_no\":null,\"client_vat_no\":null,\"client_local_vat_no\":null,\"client_has_delivery_address\":false,\"client_delivery_name\":null,\"client_delivery_street\":null,\"client_delivery_city\":null,\"client_delivery_zip\":null,\"client_delivery_country\":null,\"subject_id\":26451821,\"subject_custom_id\":null,\"generator_id\":null,\"related_id\":null,\"paypal\":false,\"gopay\":false,\"token\":\"mKJUzMFQ7g\",\"status\":\"open\",\"order_number\":null,\"issued_on\":\"2025-05-11\",\"taxable_fulfillment_due\":\"2025-05-11\",\"due\":14,\"due_on\":\"2025-05-25\",\"sent_at\":null,\"paid_on\":null,\"reminder_sent_at\":null,\"cancelled_at\":null,\"uncollectible_at\":null,\"locked_at\":null,\"webinvoice_seen_on\":null,\"note\":null,\"footer_note\":\"\",\"private_note\":null,\"tags\":[],\"bank_account\":\"123456/0000\",\"iban\":\"CZ2220100000002401457211\",\"swift_bic\":\"\",\"iban_visibility\":\"automatically\",\"show_already_paid_note_in_pdf\":false,\"payment_method\":\"bank\",\"custom_payment_method\":null,\"hide_bank_account\":false,\"currency\":\"CZK\",\"exchange_rate\":\"1.0\",\"language\":\"cz\",\"transferred_tax_liability\":false,\"supply_code\":null,\"oss\":\"disabled\",\"vat_price_mode\":\"without_vat\",\"subtotal\":\"5.0\",\"total\":\"5.0\",\"native_subtotal\":\"5.0\",\"native_total\":\"5.0\",\"remaining_amount\":\"5.0\",\"remaining_native_amount\":\"5.0\",\"eet_records\":[],\"lines\":[{\"id\":113960854,\"name\":\"python-fakturoid-v3-test-1\",\"quantity\":\"1.0\",\"unit_name\":\"\",\"unit_price\":\"1.0\",\"vat_rate\":0,\"unit_price_without_vat\":\"1.0\",\"unit_price_with_vat\":\"1.0\",\"total_price_without_vat\":\"1.0\",\"total_vat\":\"0.0\",\"native_total_price_without_vat\":\"1.0\",\"native_total_vat\":0,\"inventory\":null},{\"id\":113960855,\"name\":\"python-fakturoid-v3-test-1\",\"quantity\":\"2.0\",\"unit_name\":\"\",\"unit_price\":\"2.0\",\"vat_rate\":0,\"unit_price_without_vat\":\"2.0\",\"unit_price_with_vat\":\"2.0\",\"total_price_without_vat\":\"4.0\",\"total_vat\":\"0.0\",\"native_total_price_without_vat\":\"4.0\",\"native_total_vat\":0,\"inventory\":null}],\"vat_rates_summary\":[{\"vat_rate\":0,\"base\":\"5.0\",\"vat\":\"0.0\",\"currency\":\"CZK\",\"native_base\":\"5.0\",\"native_vat\":\"0.0\",\"native_currency\":\"CZK\"}],\"paid_advances\":[],\"payments\":[],\"attachments\":[],\"html_url\":\"https://app.fakturoid.cz/fakturcalldev/invoices/47215313\",\"public_html_url\":\"https://app.fakturoid.cz/fakturcalldev/p/mKJUzMFQ7g/2025-0001\",\"url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json\",\"pdf_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313/download.pdf\",\"subject_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json\",\"created_at\":\"2025-05-11T18:08:15.253+02:00\",\"updated_at\":\"2025-05-11T18:08:15.653+02:00\"}"
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - max-age=0, private, must-revalidate
+      content-length:
+      - '3090'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      etag:
+      - W/"6b132567a8b5a0f33e9236e4d2e9f210"
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=383;t=42
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - 4e70b199-806d-4584-bd7d-dae968d36ac9
+      x-runtime:
+      - '0.108072'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: GET
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json
+  response:
+    body:
+      string: "{\"id\":47215313,\"custom_id\":null,\"document_type\":\"invoice\",\"proforma_followup_document\":null,\"correction_id\":null,\"number\":\"2025-0001\",\"number_format_id\":704078,\"variable_symbol\":\"20250001\",\"your_name\":\"fakturcall-dev\",\"your_street\":\"Bezru\u010Dova
+        688\",\"your_city\":\"Lo\u0161tice\",\"your_zip\":\"789 83\",\"your_country\":\"CZ\",\"your_registration_no\":\"\",\"your_vat_no\":\"\",\"your_local_vat_no\":null,\"client_name\":\"python-fakturoid-v3-test-1\",\"client_street\":null,\"client_city\":null,\"client_zip\":null,\"client_country\":\"CZ\",\"client_registration_no\":null,\"client_vat_no\":null,\"client_local_vat_no\":null,\"client_has_delivery_address\":false,\"client_delivery_name\":null,\"client_delivery_street\":null,\"client_delivery_city\":null,\"client_delivery_zip\":null,\"client_delivery_country\":null,\"subject_id\":26451821,\"subject_custom_id\":null,\"generator_id\":null,\"related_id\":null,\"paypal\":false,\"gopay\":false,\"token\":\"mKJUzMFQ7g\",\"status\":\"open\",\"order_number\":null,\"issued_on\":\"2025-05-11\",\"taxable_fulfillment_due\":\"2025-05-11\",\"due\":14,\"due_on\":\"2025-05-25\",\"sent_at\":null,\"paid_on\":null,\"reminder_sent_at\":null,\"cancelled_at\":null,\"uncollectible_at\":null,\"locked_at\":null,\"webinvoice_seen_on\":null,\"note\":null,\"footer_note\":\"\",\"private_note\":null,\"tags\":[],\"bank_account\":\"123456/0000\",\"iban\":\"CZ2220100000002401457211\",\"swift_bic\":\"\",\"iban_visibility\":\"automatically\",\"show_already_paid_note_in_pdf\":false,\"payment_method\":\"bank\",\"custom_payment_method\":null,\"hide_bank_account\":false,\"currency\":\"CZK\",\"exchange_rate\":\"1.0\",\"language\":\"cz\",\"transferred_tax_liability\":false,\"supply_code\":null,\"oss\":\"disabled\",\"vat_price_mode\":\"without_vat\",\"subtotal\":\"5.0\",\"total\":\"5.0\",\"native_subtotal\":\"5.0\",\"native_total\":\"5.0\",\"remaining_amount\":\"5.0\",\"remaining_native_amount\":\"5.0\",\"eet_records\":[],\"lines\":[{\"id\":113960854,\"name\":\"python-fakturoid-v3-test-1\",\"quantity\":\"1.0\",\"unit_name\":\"\",\"unit_price\":\"1.0\",\"vat_rate\":0,\"unit_price_without_vat\":\"1.0\",\"unit_price_with_vat\":\"1.0\",\"total_price_without_vat\":\"1.0\",\"total_vat\":\"0.0\",\"native_total_price_without_vat\":\"1.0\",\"native_total_vat\":0,\"inventory\":null},{\"id\":113960855,\"name\":\"python-fakturoid-v3-test-1\",\"quantity\":\"2.0\",\"unit_name\":\"\",\"unit_price\":\"2.0\",\"vat_rate\":0,\"unit_price_without_vat\":\"2.0\",\"unit_price_with_vat\":\"2.0\",\"total_price_without_vat\":\"4.0\",\"total_vat\":\"0.0\",\"native_total_price_without_vat\":\"4.0\",\"native_total_vat\":0,\"inventory\":null}],\"vat_rates_summary\":[{\"vat_rate\":0,\"base\":\"5.0\",\"vat\":\"0.0\",\"currency\":\"CZK\",\"native_base\":\"5.0\",\"native_vat\":\"0.0\",\"native_currency\":\"CZK\"}],\"paid_advances\":[],\"payments\":[],\"attachments\":[],\"html_url\":\"https://app.fakturoid.cz/fakturcalldev/invoices/47215313\",\"public_html_url\":\"https://app.fakturoid.cz/fakturcalldev/p/mKJUzMFQ7g/2025-0001\",\"url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json\",\"pdf_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313/download.pdf\",\"subject_url\":\"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json\",\"created_at\":\"2025-05-11T18:08:15.253+02:00\",\"updated_at\":\"2025-05-11T18:08:15.653+02:00\"}"
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - max-age=0, private, must-revalidate
+      content-length:
+      - '3090'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      etag:
+      - W/"6b132567a8b5a0f33e9236e4d2e9f210"
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=382;t=42
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - 33dbbce6-5689-412b-8f70-087c0e5cc585
+      x-runtime:
+      - '0.031268'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '0'
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: DELETE
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/invoices/47215313.json
+  response:
+    body:
+      string: ''
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - no-cache
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=381;t=42
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - 73ebb8af-9cc7-4ffc-b9bc-549abb4fc0aa
+      x-runtime:
+      - '0.050250'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 204
+      message: No Content
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '0'
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: DELETE
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json
+  response:
+    body:
+      string: ''
+    headers:
+      access-control-allow-origin:
+      - '*'
+      cache-control:
+      - no-cache
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=380;t=42
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - 8bfa427e-fb02-4d70-ac90-8777f9b40278
+      x-runtime:
+      - '0.040586'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 204
+      message: No Content
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip, deflate
+      Authorization:
+      - Basic DUMMY_VALUE
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      Cookie:
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTUuMTU2WiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--e7cdf939c019f448169867ae60d0fb549c843cff
+      User-Agent:
+      - python-fakturoid-v3-test
+    method: GET
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451821.json
+  response:
+    body:
+      string: '{"error":"resource_not_found"}'
+    headers:
+      cache-control:
+      - no-cache
+      content-length:
+      - '30'
+      content-type:
+      - application/json; charset=utf-8
+      date:
+      - Sun, 11 May 2025 16:08:15 GMT
+      referrer-policy:
+      - strict-origin-when-cross-origin
+      strict-transport-security:
+      - max-age=63072000; includeSubDomains; preload
+      vary:
+      - Accept-Encoding
+      x-content-type-options:
+      - nosniff
+      x-frame-options:
+      - SAMEORIGIN
+      x-permitted-cross-domain-policies:
+      - none
+      x-ratelimit:
+      - default;r=379;t=42
+      x-ratelimit-policy:
+      - default;q=400;w=60
+      x-request-id:
+      - 60e27bbf-ead9-48e9-b593-b96adf1e7ee7
+      x-runtime:
+      - '0.017611'
+      x-xss-protection:
+      - '0'
+    status:
+      code: 404
+      message: Not Found
+version: 1

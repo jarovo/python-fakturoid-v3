@@ -137,8 +137,8 @@ class InvoiceTestCase(FakturoidTestCase):
 
         mock.assert_called_once_with(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json",
-            params={"event": "cancel"},
             data=None,
+            params={"event": "cancel"},
         )
 
     def test_save_update_line(self):

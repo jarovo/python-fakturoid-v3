@@ -1,18 +1,18 @@
 import pytest
 from os import environ
 from fakturoid import Fakturoid, Invoice, Subject, Line, NotFoundError
-import uuid
+from fakturoid.api import JWTToken
+from datetime import timedelta
+
 from decimal import Decimal
 from tests import conf
 from unittest import TestCase
+from pytest import MonkeyPatch
+
+from vcr.cassette import Cassette
 
 
-@pytest.fixture(scope="module")
-def vcr_config():
-    return {"decode_compressed_response": True, "filter_headers": ["authorization"]}
-
-
-def login():
+def fakturoid_factory():
     fa = Fakturoid(
         conf.FAKTUROID_SLUG,
         conf.FAKTUROID_CLIENT_ID,
@@ -22,9 +22,26 @@ def login():
     return fa
 
 
+@pytest.fixture
+@pytest.mark.vcr
+def fa_cli(monkeypatch: MonkeyPatch, vcr: Cassette):
+    fa_cli = fakturoid_factory()
+    if vcr.record_mode != "once":
+        monkeypatch.setattr(
+            fa_cli,
+            "_token",
+            JWTToken(
+                token_type="Mock token type",
+                access_token="Mock token value",
+                expires_in=timedelta(seconds=7200),
+            ),
+        )
+    return fa_cli
+
+
 def test_login():
-    fa = login()
-    account = fa.account.load()
+    fa_cli = fakturoid_factory()
+    account = fa_cli.account.load()
     assert account
     assert account.name
 
@@ -32,11 +49,6 @@ def test_login():
 def prefixed_name(counter=0):
     counter += 1
     return f"{conf.TESTS_OBJECTS_NAME_PREFIX}-{counter}"
-
-
-@pytest.fixture
-def fa_cli():
-    return login()
 
 
 @pytest.fixture
@@ -105,7 +117,7 @@ def test_crud_invoice(fa_cli: Fakturoid, subject: Subject):
 
 class PaginationTest(TestCase):
     def setUp(self):
-        self.fa_cli = login()
+        self.fa_cli = fakturoid_factory()
         self.TEST_ITEMS_COUNT = 60
         self.tag = f"{prefixed_name()}-test-subjects"
         self.test_subjects = [

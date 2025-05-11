@@ -39,6 +39,10 @@ def fa_cli(monkeypatch: MonkeyPatch, vcr: Cassette):
     return fa_cli
 
 
+@pytest.mark.skipif(
+    not conf.FAKTUROID_CLIENT_ID or not conf.FAKTUROID_CLIENT_SECRET,
+    reason="Credentials are needed to run test_login",
+)
 def test_login():
     fa_cli = fakturoid_factory()
     account = fa_cli.account.load()

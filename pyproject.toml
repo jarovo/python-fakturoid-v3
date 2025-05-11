@@ -43,6 +43,7 @@ test = [
   "pytest-recording >= 0.13.3"
 ]
 dev = [
+  "mypy >= 1.15.0",
   'types-requests'
 ]
 

@@ -1,8 +1,8 @@
-from os import environ
+from os import getenv
 
-FAKTUROID_SLUG = environ["FAKTUROID_SLUG"]
-FAKTUROID_CLIENT_ID = environ["FAKTUROID_CLIENT_ID"]
-FAKTUROID_CLIENT_SECRET = environ["FAKTUROID_CLIENT_SECRET"]
+FAKTUROID_SLUG = getenv("FAKTUROID_SLUG")
+FAKTUROID_CLIENT_ID = getenv("FAKTUROID_CLIENT_ID")
+FAKTUROID_CLIENT_SECRET = getenv("FAKTUROID_CLIENT_SECRET")
 
 TESTS_USER_AGENT = (
     "python-fakturoid-v3-tests (https://github.com/jarovo/python-fakturoid-v3)"

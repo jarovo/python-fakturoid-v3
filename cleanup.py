@@ -1,6 +1,11 @@
 import fakturoid
 from tests import conf
 
+assert conf.FAKTUROID_SLUG
+assert conf.FAKTUROID_CLIENT_ID
+assert conf.FAKTUROID_CLIENT_SECRET
+
+
 fa = fakturoid.Fakturoid(
     conf.FAKTUROID_SLUG,
     conf.FAKTUROID_CLIENT_ID,

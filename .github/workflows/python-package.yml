@@ -44,3 +44,5 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+      env:
+        FAKTUROID_SLUG: ${{ secrets.FAKTUROID_SLUG }}

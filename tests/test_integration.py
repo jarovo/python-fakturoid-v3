@@ -23,19 +23,20 @@ def fakturoid_factory():
 
 
 @pytest.fixture
-@pytest.mark.vcr
 def fa_cli(monkeypatch: MonkeyPatch, vcr: Cassette):
     fa_cli = fakturoid_factory()
-    if vcr.record_mode != "once":
+    if not conf.FAKTUROID_CLIENT_ID:
+        assert vcr
         monkeypatch.setattr(
             fa_cli,
             "_token",
             JWTToken(
-                token_type="Mock token type",
-                access_token="Mock token value",
+                token_type="Basic",
+                access_token="DUMMY_VALUE",
                 expires_in=timedelta(seconds=7200),
             ),
         )
+        assert not fa_cli._token.is_expired
     return fa_cli
 
 
@@ -119,22 +120,25 @@ def test_crud_invoice(fa_cli: Fakturoid, subject: Subject):
     fa_cli.invoices.delete(created_invoice.id)
 
 
-class PaginationTest(TestCase):
-    def setUp(self):
-        self.fa_cli = fakturoid_factory()
-        self.TEST_ITEMS_COUNT = 60
-        self.tag = f"{prefixed_name()}-test-subjects"
-        self.test_subjects = [
-            self.fa_cli.subjects.create(Subject(name=prefixed_name()))
-            for i in range(self.TEST_ITEMS_COUNT)
-        ]
+@pytest.fixture
+def pagination_setup(fa_cli: Fakturoid):
+    TEST_ITEMS_COUNT = 60
+    tag = f"{prefixed_name()}-test-subjects"
+    test_subjects = [
+        fa_cli.subjects.create(Subject(name=prefixed_name()))
+        for i in range(TEST_ITEMS_COUNT)
+    ]
 
-    def tearDown(self):
-        for test_item in self.test_subjects:
-            self.fa_cli.subjects.delete(test_item.id)
+    yield fa_cli, test_subjects
 
-    @pytest.mark.vcr
-    def test_pagination(self):
-        found_items = set(i.id for i in self.fa_cli.subjects.list())
-        created_items = set(i.id for i in self.test_subjects)
-        assert found_items == created_items
+    for test_item in test_subjects:
+        assert test_item.id
+        fa_cli.subjects.delete(test_item.id)
+
+
+@pytest.mark.vcr
+def test_pagination(pagination_setup: tuple[Fakturoid, list[Subject]]):
+    fa_cli, test_subjects = pagination_setup
+    found_items = set(i.id for i in fa_cli.subjects.list())
+    created_items = set(i.id for i in test_subjects)
+    assert found_items == created_items

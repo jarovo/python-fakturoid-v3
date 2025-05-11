@@ -30,9 +30,9 @@ interactions:
       content-type:
       - application/json; charset=utf-8
       date:
-      - Sun, 11 May 2025 16:08:14 GMT
+      - Mon, 12 May 2025 02:34:04 GMT
       etag:
-      - W/"1f06fdd2205904a97d924e0264f46055"
+      - W/"302ed51a8bdc43ad229c8870a6dafa13"
       pragma:
       - no-cache
       referrer-policy:
@@ -48,13 +48,13 @@ interactions:
       x-permitted-cross-domain-policies:
       - none
       x-ratelimit:
-      - default;r=395;t=43
+      - default;r=397;t=60
       x-ratelimit-policy:
       - default;q=400;w=60
       x-request-id:
-      - ae2df66c-0204-4f42-b19d-25c960c76d7a
+      - ef573d06-4b1a-47fe-9bae-53af7b349707
       x-runtime:
-      - '0.013451'
+      - '0.013743'
       x-xss-protection:
       - '0'
     status:
@@ -81,7 +81,7 @@ interactions:
     uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects.json
   response:
     body:
-      string: '{"id":26451820,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":null,"email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26451820","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json","created_at":"2025-05-11T18:08:14.505+02:00","updated_at":"2025-05-11T18:08:14.505+02:00"}'
+      string: '{"id":26457931,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":null,"email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26457931","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json","created_at":"2025-05-12T04:34:04.456+02:00","updated_at":"2025-05-12T04:34:04.456+02:00"}'
     headers:
       access-control-allow-origin:
       - '*'
@@ -92,16 +92,16 @@ interactions:
       content-type:
       - application/json; charset=utf-8
       date:
-      - Sun, 11 May 2025 16:08:14 GMT
+      - Mon, 12 May 2025 02:34:04 GMT
       etag:
-      - W/"bb220f0458b48e7fe26766cf5cd1013e"
+      - W/"8baf7b1208a7e0ec8107b07744f2d39d"
       location:
-      - https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json
+      - https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json
       referrer-policy:
       - strict-origin-when-cross-origin
       set-cookie:
-      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTQuNTAwWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--6147b2dfc859b32796e9f99c5bae1574eda0b33c;
-        path=/; expires=Mon, 11 May 2026 16:08:14 GMT; httponly; samesite=lax; secure
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTJUMDI6MzQ6MDQuNDUxWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--a7c8c4fca6fb8e074a78a3b6b5be49fb2e6c37cd;
+        path=/; expires=Tue, 12 May 2026 02:34:04 GMT; httponly; samesite=lax; secure
       strict-transport-security:
       - max-age=63072000; includeSubDomains; preload
       vary:
@@ -113,20 +113,20 @@ interactions:
       x-permitted-cross-domain-policies:
       - none
       x-ratelimit:
-      - default;r=394;t=43
+      - default;r=396;t=60
       x-ratelimit-policy:
       - default;q=400;w=60
       x-request-id:
-      - d2fdea60-d383-4e0c-94ae-ea523ce87d38
+      - e60b5a23-cc9f-45a2-b4fc-d4a5cfac488f
       x-runtime:
-      - '0.037522'
+      - '0.040368'
       x-xss-protection:
       - '0'
     status:
       code: 201
       message: Created
 - request:
-    body: '{"created_at":"2025-05-11T18:08:14.505000+02:00","updated_at":"2025-05-11T18:08:14.505000+02:00","id":26451820,"name":"python-fakturoid-v3-test-1","type":"customer","country":"CZ","has_delivery_address":false,"unreliable":false,"suggestion_enabled":true,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26451820","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json"}'
+    body: '{"created_at":"2025-05-12T04:34:04.456000+02:00","updated_at":"2025-05-12T04:34:04.456000+02:00","id":26457931,"name":"python-fakturoid-v3-test-1","type":"customer","country":"CZ","has_delivery_address":false,"unreliable":false,"suggestion_enabled":true,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26457931","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json"}'
     headers:
       Accept:
       - application/json
@@ -141,14 +141,14 @@ interactions:
       Content-Type:
       - application/json
       Cookie:
-      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTQuNTAwWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--6147b2dfc859b32796e9f99c5bae1574eda0b33c
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTJUMDI6MzQ6MDQuNDUxWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--a7c8c4fca6fb8e074a78a3b6b5be49fb2e6c37cd
       User-Agent:
       - python-fakturoid-v3-test
     method: PATCH
-    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json
   response:
     body:
-      string: '{"id":26451820,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":null,"email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26451820","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json","created_at":"2025-05-11T18:08:14.505+02:00","updated_at":"2025-05-11T18:08:14.505+02:00"}'
+      string: '{"id":26457931,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":null,"email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26457931","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json","created_at":"2025-05-12T04:34:04.456+02:00","updated_at":"2025-05-12T04:34:04.456+02:00"}'
     headers:
       access-control-allow-origin:
       - '*'
@@ -159,9 +159,9 @@ interactions:
       content-type:
       - application/json; charset=utf-8
       date:
-      - Sun, 11 May 2025 16:08:14 GMT
+      - Mon, 12 May 2025 02:34:04 GMT
       etag:
-      - W/"bb220f0458b48e7fe26766cf5cd1013e"
+      - W/"8baf7b1208a7e0ec8107b07744f2d39d"
       referrer-policy:
       - strict-origin-when-cross-origin
       strict-transport-security:
@@ -175,20 +175,20 @@ interactions:
       x-permitted-cross-domain-policies:
       - none
       x-ratelimit:
-      - default;r=393;t=43
+      - default;r=395;t=60
       x-ratelimit-policy:
       - default;q=400;w=60
       x-request-id:
-      - d436ea03-1693-4db3-b03c-84c488d6d536
+      - 153608bb-f7e1-40e9-ad55-85d33d751e28
       x-runtime:
-      - '0.027548'
+      - '0.026023'
       x-xss-protection:
       - '0'
     status:
       code: 200
       message: OK
 - request:
-    body: '{"created_at":"2025-05-11T18:08:14.505000+02:00","updated_at":"2025-05-11T18:08:14.505000+02:00","id":26451820,"name":"python-fakturoid-v3-test-1","type":"customer","email":"test@gmail.com","country":"CZ","has_delivery_address":false,"unreliable":false,"suggestion_enabled":true,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26451820","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json"}'
+    body: '{"created_at":"2025-05-12T04:34:04.456000+02:00","updated_at":"2025-05-12T04:34:04.456000+02:00","id":26457931,"name":"python-fakturoid-v3-test-1","type":"customer","email":"test@gmail.com","country":"CZ","has_delivery_address":false,"unreliable":false,"suggestion_enabled":true,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26457931","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json"}'
     headers:
       Accept:
       - application/json
@@ -203,14 +203,14 @@ interactions:
       Content-Type:
       - application/json
       Cookie:
-      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTQuNTAwWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--6147b2dfc859b32796e9f99c5bae1574eda0b33c
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTJUMDI6MzQ6MDQuNDUxWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--a7c8c4fca6fb8e074a78a3b6b5be49fb2e6c37cd
       User-Agent:
       - python-fakturoid-v3-test
     method: PATCH
-    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json
   response:
     body:
-      string: '{"id":26451820,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":"test@gmail.com","email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26451820","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json","created_at":"2025-05-11T18:08:14.505+02:00","updated_at":"2025-05-11T18:08:14.637+02:00"}'
+      string: '{"id":26457931,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":"test@gmail.com","email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26457931","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json","created_at":"2025-05-12T04:34:04.456+02:00","updated_at":"2025-05-12T04:34:04.686+02:00"}'
     headers:
       access-control-allow-origin:
       - '*'
@@ -221,9 +221,9 @@ interactions:
       content-type:
       - application/json; charset=utf-8
       date:
-      - Sun, 11 May 2025 16:08:14 GMT
+      - Mon, 12 May 2025 02:34:04 GMT
       etag:
-      - W/"b177b8eab65a9d069bd993f9ab392317"
+      - W/"8f8973492912f745ff39c860c07ebe6a"
       referrer-policy:
       - strict-origin-when-cross-origin
       strict-transport-security:
@@ -237,13 +237,13 @@ interactions:
       x-permitted-cross-domain-policies:
       - none
       x-ratelimit:
-      - default;r=392;t=43
+      - default;r=394;t=59
       x-ratelimit-policy:
       - default;q=400;w=60
       x-request-id:
-      - 5e25c22b-31b6-46cc-a29d-e1928ae64609
+      - c9f21438-e689-43ed-85aa-8ab22838941d
       x-runtime:
-      - '0.035129'
+      - '0.034107'
       x-xss-protection:
       - '0'
     status:
@@ -263,14 +263,14 @@ interactions:
       Content-Type:
       - application/json
       Cookie:
-      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTQuNTAwWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--6147b2dfc859b32796e9f99c5bae1574eda0b33c
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTJUMDI6MzQ6MDQuNDUxWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--a7c8c4fca6fb8e074a78a3b6b5be49fb2e6c37cd
       User-Agent:
       - python-fakturoid-v3-test
     method: GET
     uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects.json?email=test%40gmail.com&page=1
   response:
     body:
-      string: '[{"id":26451820,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":"test@gmail.com","email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26451820","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json","created_at":"2025-05-11T18:08:14.505+02:00","updated_at":"2025-05-11T18:08:14.637+02:00"}]'
+      string: '[{"id":26457931,"custom_id":null,"type":"customer","name":"python-fakturoid-v3-test-1","street":null,"city":null,"zip":null,"country":"CZ","has_delivery_address":false,"delivery_name":null,"delivery_street":null,"delivery_city":null,"delivery_zip":null,"delivery_country":null,"registration_no":null,"vat_no":null,"local_vat_no":null,"bank_account":null,"iban":null,"swift_bic":null,"variable_symbol":null,"due":null,"currency":null,"language":null,"private_note":null,"full_name":null,"email":"test@gmail.com","email_copy":null,"phone":null,"web":null,"unreliable":false,"unreliable_checked_at":null,"legal_form":null,"setting_update_from_ares":"inherit","ares_update":false,"setting_invoice_pdf_attachments":"inherit","setting_estimate_pdf_attachments":"inherit","setting_invoice_send_reminders":"inherit","suggestion_enabled":true,"custom_email_text":null,"overdue_email_text":null,"invoice_from_proforma_email_text":null,"thank_you_email_text":null,"custom_estimate_email_text":null,"webinvoice_history":null,"html_url":"https://app.fakturoid.cz/fakturcalldev/subjects/26457931","url":"https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json","created_at":"2025-05-12T04:34:04.456+02:00","updated_at":"2025-05-12T04:34:04.686+02:00"}]'
     headers:
       access-control-allow-origin:
       - '*'
@@ -281,9 +281,9 @@ interactions:
       content-type:
       - application/json; charset=utf-8
       date:
-      - Sun, 11 May 2025 16:08:14 GMT
+      - Mon, 12 May 2025 02:34:04 GMT
       etag:
-      - W/"31328e68e552ea71704942b611d0c12b"
+      - W/"1120c54eaea7ff4f51056ee36afb9e47"
       referrer-policy:
       - strict-origin-when-cross-origin
       strict-transport-security:
@@ -297,13 +297,13 @@ interactions:
       x-permitted-cross-domain-policies:
       - none
       x-ratelimit:
-      - default;r=391;t=43
+      - default;r=393;t=59
       x-ratelimit-policy:
       - default;q=400;w=60
       x-request-id:
-      - 853b692d-d47c-4baa-b885-6a3657f15d8b
+      - 8ddadb77-4cec-4bee-b810-fc0c328b184d
       x-runtime:
-      - '0.018410'
+      - '0.017920'
       x-xss-protection:
       - '0'
     status:
@@ -325,11 +325,11 @@ interactions:
       Content-Type:
       - application/json
       Cookie:
-      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTQuNTAwWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--6147b2dfc859b32796e9f99c5bae1574eda0b33c
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTJUMDI6MzQ6MDQuNDUxWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--a7c8c4fca6fb8e074a78a3b6b5be49fb2e6c37cd
       User-Agent:
       - python-fakturoid-v3-test
     method: DELETE
-    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26451820.json
+    uri: https://app.fakturoid.cz/api/v3/accounts/fakturcalldev/subjects/26457931.json
   response:
     body:
       string: ''
@@ -339,7 +339,7 @@ interactions:
       cache-control:
       - no-cache
       date:
-      - Sun, 11 May 2025 16:08:14 GMT
+      - Mon, 12 May 2025 02:34:04 GMT
       referrer-policy:
       - strict-origin-when-cross-origin
       strict-transport-security:
@@ -351,13 +351,13 @@ interactions:
       x-permitted-cross-domain-policies:
       - none
       x-ratelimit:
-      - default;r=390;t=43
+      - default;r=392;t=59
       x-ratelimit-policy:
       - default;q=400;w=60
       x-request-id:
-      - 8982b3aa-e673-410b-82f8-2668681da6cb
+      - b9e6bcb4-7336-40a6-8e66-fe6865768cf6
       x-runtime:
-      - '0.081658'
+      - '0.050851'
       x-xss-protection:
       - '0'
     status:
@@ -377,7 +377,7 @@ interactions:
       Content-Type:
       - application/json
       Cookie:
-      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTFUMTY6MDg6MTQuNTAwWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--6147b2dfc859b32796e9f99c5bae1574eda0b33c
+      - application_theme=eyJfcmFpbHMiOnsibWVzc2FnZSI6IklteHBaMmgwSWc9PSIsImV4cCI6IjIwMjYtMDUtMTJUMDI6MzQ6MDQuNDUxWiIsInB1ciI6ImNvb2tpZS5hcHBsaWNhdGlvbl90aGVtZSJ9fQ%3D%3D--a7c8c4fca6fb8e074a78a3b6b5be49fb2e6c37cd
       User-Agent:
       - python-fakturoid-v3-test
     method: GET
@@ -395,7 +395,7 @@ interactions:
       content-type:
       - application/json; charset=utf-8
       date:
-      - Sun, 11 May 2025 16:08:14 GMT
+      - Mon, 12 May 2025 02:34:05 GMT
       etag:
       - W/"4f53cda18c2baa0c0354bb5f9a3ecbe5"
       referrer-policy:
@@ -411,13 +411,13 @@ interactions:
       x-permitted-cross-domain-policies:
       - none
       x-ratelimit:
-      - default;r=389;t=43
+      - default;r=391;t=59
       x-ratelimit-policy:
       - default;q=400;w=60
       x-request-id:
-      - f97d7c4a-7a55-4842-9f9f-318261fb773c
+      - 65f6b0eb-817d-492e-8340-e493421a912e
       x-runtime:
-      - '0.017941'
+      - '0.015355'
       x-xss-protection:
       - '0'
     status:

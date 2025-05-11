@@ -4,11 +4,6 @@ import vcr
 from datetime import datetime
 
 
-def record_time():
-    with open("last_authorization_datetime.txt", "w") as file:
-        file.write(datetime.now())
-
-
 def scrub_authorization_from_requests(request):
     authorization = request.headers.get("Authorization", "")
     if authorization:
@@ -30,6 +25,8 @@ def scrub_token_from_credentials_response(response):
 
 # This fixture tells pytest-recording how to configure VCR
 def pytest_recording_configure(config, vcr: vcr.VCR):
+    import pdb
+
     config.decode_compressed_response = True
     config.filter_headers = ["Authorization"]
     vcr.before_record_request = scrub_authorization_from_requests

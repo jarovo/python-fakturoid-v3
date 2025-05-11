@@ -328,7 +328,11 @@ class Fakturoid:
     ) -> APIResponse:
         url = f"{self.base_url}/{path}"
         response = self.session.post(url, data=data, params=params)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as err:
+            new_err = FakturoidError(response.text)
+            raise new_err from err
         return APIResponse(response)
 
     def _patch(self, path: str, json_str: str) -> APIResponse:

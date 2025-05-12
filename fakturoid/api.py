@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 import typing
-from typing import Optional, Final, TypeVar, Any, Generic, Type, List
+from typing import Optional, Final, TypeVar, Generic, Type, List
 from datetime import datetime, timedelta
 from functools import wraps
 from pydantic import TypeAdapter
@@ -48,6 +48,10 @@ class APIResponse:
 
     def __init__(self, requests_response: requests.Response):
         self._requests_response = requests_response
+
+    @property
+    def text(self):
+        return self._requests_response.text
 
     def json(self):
         return self._requests_response.json()
@@ -101,36 +105,35 @@ class APIBase:
     def __init__(self, client: Fakturoid):
         self.client = client
 
+    @property
+    def base_path(self) -> str:
+        raise NotImplementedError("Subclasses must implement this method.")
+
 
 class LoadableAPI(APIBase, Generic[M]):
-    def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[M]):
-        super().__init__(client=client)
-        self.model_cls = model_cls
-        self.base_path = base_path
+    @property
+    def _model_type(self) -> Type[M]:
+        raise NotImplementedError("Subclasses must implement this method.")
 
     def load(self) -> M:
         self.client._ensure_authenticated()
-        raw = self.client._get(f"{self.base_path}.json").json()
-        return self.model_cls.model_validate(raw)
+        response = self.client._get(f"{self.base_path}.json")
+        return self._model_type.model_validate_json(response.text)
 
 
 class CollectionAPI(APIBase, Generic[U]):
     PER_PAGE: Final[int] = 40
-
-    def __init__(self, client: Fakturoid, base_path: str, model_cls: Type[U]):
-        super().__init__(client=client)
-        self.client = client
-        self.base_path = base_path
-        self.model_cls = model_cls
+    _model_type: Type[U]
+    _page_type_adapter: TypeAdapter[List[U]]
 
     def get(self, id: int) -> U:
         self.client._ensure_authenticated()
-        raw = self.client._get(f"{self.base_path}/{id}.json")
-        return self._bind(self.model_cls.model_validate(raw.json()))
+        response = self.client._get(f"{self.base_path}/{id}.json")
+        return self._bind(self._model_type.model_validate_json(response.text))
 
     def _bind(self, obj: U) -> U:
-        if isinstance(obj, Model):
-            obj.__resource_path__ = self.base_path
+        assert isinstance(obj, Model)
+        obj.__resource_path__ = self.base_path
         return obj
 
     def list(self, **params) -> List[U]:
@@ -141,30 +144,27 @@ class CollectionAPI(APIBase, Generic[U]):
 
     def _paginated(self, path, **params) -> typing.Generator[U, None, None]:
         self.client._ensure_authenticated()
-        page = 1
-        per_page = 40  # Fixed number of items per page
+        page_no = 1
 
         while True:
             # Include the `page` parameter in the request
-            paged_params = {**params, "page": page}
-            response = list(
-                self.client._get(f"{self.base_path}.json", params=paged_params).json()
-            )
-
+            paged_params = {**params, "page": page_no}
+            response = self.client._get(f"{self.base_path}.json", params=paged_params)
+            results_page = self._page_type_adapter.validate_json(response.text)
             # Yield each item from the current page
-            for item in response:
-                yield self._bind(self.model_cls.model_validate(item))
+            for item in results_page:
+                yield self._bind(item)
 
-            if per_page > len(response):
+            if self.PER_PAGE > len(results_page):
                 break  # Stop if no results are returned
 
-            page += 1  # Increment page number to fetch the next page
+            page_no += 1  # Increment page number to fetch the next page
 
     def create(self, instance: U) -> U:
         self.client._ensure_authenticated()
         json_str = instance.model_dump_json(exclude_unset=True)
-        raw = self.client._post(f"{self.base_path}.json", json_str)
-        return self.model_cls.model_validate(raw.json())
+        response = self.client._post(f"{self.base_path}.json", json_str)
+        return self._model_type.model_validate_json(response.text)
 
     def delete(self, instance_id: int) -> None:
         self.client._ensure_authenticated()
@@ -188,11 +188,11 @@ class CollectionAPI(APIBase, Generic[U]):
     def update(self, instance: U) -> U:
         payload = instance.to_patch_payload()
         self.client._ensure_authenticated()
-        raw = self.client._patch(
+        response = self.client._patch(
             f"{self.base_path}/{instance.id}.json",
             payload.model_dump_json(exclude_unset=True),
         )
-        return self.model_cls.model_validate(raw.json())
+        return self._model_type.model_validate_json(response.text)
 
     def save(self, instance: U) -> U:
         if instance.id:
@@ -246,35 +246,76 @@ class Fakturoid:
             }
         )
 
-        self.current_user = LoadableAPI[User](self, "user", User)
-        self.account = LoadableAPI[Account](
-            self, f"accounts/{self.slug}/account", Account
-        )
-        self.users = CollectionAPI[User](self, f"accounts/{self.slug}/users", User)
-        self.bank_accounts = CollectionAPI[BankAccount](
-            self, f"accounts/{self.slug}/bank_accounts", BankAccount
-        )
-        self.subjects = CollectionAPI[Subject](
-            self, f"accounts/{self.slug}/subjects", Subject
-        )
-        self.invoices = CollectionAPI[Invoice](
-            self, f"accounts/{self.slug}/invoices", Invoice
-        )
+        class UserAPI(LoadableAPI[User]):
+            base_path = "user"
+            _model_type = User
+            _page_type_adapter = TypeAdapter(list[User])
+
+        self.current_user = UserAPI(self)
+
+        class AccountApi(LoadableAPI[Account]):
+            base_path = f"accounts/{self.slug}/account"
+            _model_type = Account
+            _page_type_adapter = TypeAdapter(list[Account])
+
+        self.account = AccountApi(self)
+
+        class UsersCollectionAPI(CollectionAPI[User]):
+            base_path = f"accounts/{self.slug}/users"
+            _model_type = User
+            _page_type_adapter = TypeAdapter(list[User])
+
+        self.users = UsersCollectionAPI(self)
+
+        class BankAccountsCollectionAPI(CollectionAPI[BankAccount]):
+            base_path = f"accounts/{self.slug}/bank_accounts"
+            _model_type = BankAccount
+            _page_type_adapter = TypeAdapter(list[BankAccount])
+
+        self.bank_accounts = BankAccountsCollectionAPI(self)
+
+        class SubjectsCollectionAPI(CollectionAPI[Subject]):
+            base_path = f"accounts/{self.slug}/subjects"
+            _model_type = Subject
+            _page_type_adapter = TypeAdapter(list[Subject])
+
+        self.subjects = SubjectsCollectionAPI(self)
+
+        class InvoicesCollectionAPI(CollectionAPI[Invoice]):
+            base_path = f"accounts/{self.slug}/invoices"
+            _model_type = Invoice
+            _page_type_adapter = TypeAdapter(list[Invoice])
+
+        self.invoices = InvoicesCollectionAPI(self)
+
         self.invoice_event = ActionClient[InvoiceAction](
             self, Template("accounts/${slug}/invoices/${id}/fire.json")
         )
-        self.inventory_items = CollectionAPI[InventoryItem](
-            self, f"accounts/{self.slug}/inventory_items", InventoryItem
-        )
-        self.expenses = CollectionAPI[Expense](
-            self, f"accounts/{self.slug}/expenses", Expense
-        )
+
+        class InventoryItemsCollectionAPI(CollectionAPI[InventoryItem]):
+            base_path = f"accounts/{self.slug}/inventory_items"
+            _model_type = InventoryItem
+            _page_type_adapter = TypeAdapter(list[InventoryItem])
+
+        self.inventory_items = InventoryItemsCollectionAPI(self)
+
+        class ExpensesCollectionAPI(CollectionAPI[Expense]):
+            base_path = f"accounts/{self.slug}/expenses"
+            _model_type = Expense
+            _page_type_adapter = TypeAdapter(list[Expense])
+
+        self.expenses = ExpensesCollectionAPI(self)
+
         self.expense_event = ActionClient[LockableAction](
             self, Template("${base_url}/accounts/${slug}/expenses/${id}")
         )
-        self.generators = CollectionAPI[Generator](
-            self, f"accounts/{self.slug}/generators", Generator
-        )
+
+        class GeneratorsCollectionAPI(CollectionAPI[Generator]):
+            base_path = f"accounts/{self.slug}/generators"
+            _model_type = Generator
+            _page_type_adapter = TypeAdapter(list[Generator])
+
+        self.generators = GeneratorsCollectionAPI(self)
 
     def _ensure_token(self):
         if self._token.to_be_renewed:
@@ -300,7 +341,7 @@ class Fakturoid:
             data={"grant_type": "client_credentials"},
         )
         resp.raise_for_status()
-        self._token = JWTToken(**resp.json())
+        self._token = JWTToken.model_validate_json(resp.text)
 
     def _ensure_authenticated(self):
         self._ensure_token()

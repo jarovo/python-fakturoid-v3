@@ -104,7 +104,6 @@ class SubjectTestCase(FakturoidTestCase):
             self.fa.session, "get", return_value=response("subjects.json")
         ) as mock:
             subjects = self.fa.subjects.list()
-
         mock.assert_called_once()
         self.assertEqual(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/subjects.json",

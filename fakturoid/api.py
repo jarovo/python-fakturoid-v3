@@ -215,6 +215,16 @@ class ActionClient(APIBase, Generic[A]):
         self.client._post(url, data=None, params={"event": action.value})
 
 
+def create_collection_api_class(model: Type[U], path: str) -> type[CollectionAPI[U]]:
+    class _AutoAPI(CollectionAPI[U]):
+        base_path = path
+        _model_type = model
+        _page_type_adapter = TypeAdapter(list[model])  # type: ignore[valid-type]
+
+    _AutoAPI.__name__ = f"{model.__name__}sCollectionAPI"
+    return _AutoAPI
+
+
 class Fakturoid:
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
 
@@ -249,73 +259,45 @@ class Fakturoid:
         class UserAPI(LoadableAPI[User]):
             base_path = "user"
             _model_type = User
-            _page_type_adapter = TypeAdapter(list[User])
 
         self.current_user = UserAPI(self)
 
         class AccountApi(LoadableAPI[Account]):
             base_path = f"accounts/{self.slug}/account"
             _model_type = Account
-            _page_type_adapter = TypeAdapter(list[Account])
 
         self.account = AccountApi(self)
 
-        class UsersCollectionAPI(CollectionAPI[User]):
-            base_path = f"accounts/{self.slug}/users"
-            _model_type = User
-            _page_type_adapter = TypeAdapter(list[User])
-
-        self.users = UsersCollectionAPI(self)
-
-        class BankAccountsCollectionAPI(CollectionAPI[BankAccount]):
-            base_path = f"accounts/{self.slug}/bank_accounts"
-            _model_type = BankAccount
-            _page_type_adapter = TypeAdapter(list[BankAccount])
-
-        self.bank_accounts = BankAccountsCollectionAPI(self)
-
-        class SubjectsCollectionAPI(CollectionAPI[Subject]):
-            base_path = f"accounts/{self.slug}/subjects"
-            _model_type = Subject
-            _page_type_adapter = TypeAdapter(list[Subject])
-
-        self.subjects = SubjectsCollectionAPI(self)
-
-        class InvoicesCollectionAPI(CollectionAPI[Invoice]):
-            base_path = f"accounts/{self.slug}/invoices"
-            _model_type = Invoice
-            _page_type_adapter = TypeAdapter(list[Invoice])
-
-        self.invoices = InvoicesCollectionAPI(self)
+        self.users = create_collection_api_class(User, f"accounts/{self.slug}/users")(
+            self
+        )
+        self.bank_accounts = create_collection_api_class(
+            BankAccount, f"accounts/{self.slug}/bank_accounts"
+        )(self)
+        self.subjects = create_collection_api_class(
+            Subject, f"accounts/{self.slug}/subjects"
+        )(self)
+        self.invoices = create_collection_api_class(
+            Invoice, f"accounts/{self.slug}/invoices"
+        )(self)
 
         self.invoice_event = ActionClient[InvoiceAction](
             self, Template("accounts/${slug}/invoices/${id}/fire.json")
         )
 
-        class InventoryItemsCollectionAPI(CollectionAPI[InventoryItem]):
-            base_path = f"accounts/{self.slug}/inventory_items"
-            _model_type = InventoryItem
-            _page_type_adapter = TypeAdapter(list[InventoryItem])
-
-        self.inventory_items = InventoryItemsCollectionAPI(self)
-
-        class ExpensesCollectionAPI(CollectionAPI[Expense]):
-            base_path = f"accounts/{self.slug}/expenses"
-            _model_type = Expense
-            _page_type_adapter = TypeAdapter(list[Expense])
-
-        self.expenses = ExpensesCollectionAPI(self)
+        self.inventory_items = create_collection_api_class(
+            InventoryItem, f"accounts/{self.slug}/inventory_items"
+        )(self)
+        self.expenses = create_collection_api_class(
+            Expense, f"accounts/{self.slug}/expenses"
+        )(self)
 
         self.expense_event = ActionClient[LockableAction](
             self, Template("${base_url}/accounts/${slug}/expenses/${id}")
         )
-
-        class GeneratorsCollectionAPI(CollectionAPI[Generator]):
-            base_path = f"accounts/{self.slug}/generators"
-            _model_type = Generator
-            _page_type_adapter = TypeAdapter(list[Generator])
-
-        self.generators = GeneratorsCollectionAPI(self)
+        self.generators = create_collection_api_class(
+            Generator, f"accounts/{self.slug}/generators"
+        )(self)
 
     def _ensure_token(self):
         if self._token.to_be_renewed:

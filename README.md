@@ -31,24 +31,8 @@ Generate the Client ID and Client Secret from your Fakturoid user screen: Settin
 >>> fa = Fakturoid(getenv('FAKTUROID_SLUG'), getenv('FAKTUROID_CLIENT_ID'), getenv('FAKTUROID_CLIENT_SECRET'), 'YourApp')
 >>> subject = Subject(name="foo", tags=("test",))
 >>> saved_subject = fa.subjects.save(subject)
->>> invoice = Invoice(
-...     subject_id=saved_subject.id,
-...     due=10,
-...     issued_on=date(2012, 3, 30),
-...        taxable_fulfillment_due=date(2012, 3, 30),
-...        lines=[
-...            # use Decimal or string for floating values
-...            Line(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20),
-...            Line(
-...                name='Soft material',
-...                quantity=12,
-...                unit_name='ks',
-...                unit_price="4.60",
-...                vat_rate=20,
-...            ),
-...        ],
-...    tags=("test",)
-...    )
+>>> line = Line(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20)
+>>> invoice = Invoice(subject_id=saved_subject.id, due=10, issued_on=date(2012, 3, 30), tags=("test",), lines=[line])
 
 >>> saved_invoice = fa.invoices.save(invoice)
 >>> print(saved_invoice.due_on)

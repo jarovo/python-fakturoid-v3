@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional, Union, Literal, Any, Sequence
 from decimal import Decimal
 from pydantic.dataclasses import dataclass
@@ -76,17 +76,17 @@ class VATPriceMode(StrEnum):
 
 
 class Language(StrEnum):
-    CZ = "cz"
-    SK = "SK"
-    EN = "EN"
-    DE = "DE"
-    FR = "FR"
-    IT = "IT"
-    ES = "ES"
-    RU = "RU"
-    PL = "PL"
-    HU = "HU"
-    RO = "RO"
+    Cz = "cz"
+    Sk = "sk"
+    En = "en"
+    De = "de"
+    Fr = "fr"
+    It = "it"
+    Es = "es"
+    Ru = "ru"
+    Pl = "pl"
+    Hu = "hu"
+    Ro = "ro"
 
 
 class PaymentMethod(StrEnum):
@@ -317,6 +317,20 @@ class VatRateSummary(Model):
     native_currency: Currency
 
 
+class PaidAdvances(UniqueMixin):
+    number: Optional[str] = None
+    variable_symbol: Optional[str] = None
+    paid_on: Optional[date] = None
+    vat_rate: Optional[Decimal] = None
+    price: Optional[Decimal] = None
+    vat: Optional[Decimal] = None
+
+
+class Attachment(Model):
+    filename: Optional[str] = None
+    data_url: Optional[str] = None
+
+
 class AccountingDocumentBase(UniqueMixin):
     subject_id: int
 
@@ -324,8 +338,8 @@ class AccountingDocumentBase(UniqueMixin):
     number: Optional[str] = None
     variable_symbol: Optional[str] = None
 
-    due_on: Optional[datetime] = None
-    paid_on: Optional[datetime] = None
+    due_on: Optional[date] = None
+    paid_on: Optional[date] = None
     tags: Optional[set[str]] = None
     bank_account: Optional[str] = None
     iban: Optional[str] = None
@@ -333,6 +347,7 @@ class AccountingDocumentBase(UniqueMixin):
     payment_method: Optional[PaymentMethod] = None
     custom_payment_method: Optional[str] = None
     currency: Optional[Currency] = None
+    exchange_rate: Optional[Decimal] = None
     subtotal: Optional[Decimal] = None
     total: Optional[Decimal] = None
     native_subtotal: Optional[Decimal] = None
@@ -376,6 +391,30 @@ class InvoicePayment(ExpensePayment):
     tax_document_id: Optional[int] = None
 
 
+class InvoiceStatus(StrEnum):
+    Open = "open"
+    Sent = "sent"
+    Overdue = "overdue"
+    Paid = "paid"
+    Cancelled = "cancelled"
+    Uncollectible = "uncollectible"
+
+
+class IbanVisibility(StrEnum):
+    Automatically = "automatically"
+    Always = "always"
+
+
+class OSSMode(StrEnum):
+    Disabled = "disabled"
+    Service = "service"
+    Goods = "goods"
+
+
+class EETRecord(UniqueMixin):
+    pass
+
+
 class Invoice(AccountingDocumentBase):
     """See http://docs.fakturoid.apiary.io/ for complete field reference."""
 
@@ -385,10 +424,83 @@ class Invoice(AccountingDocumentBase):
     correction_id: Optional[int] = None
     # number inherited from AccountingDocumentBase
     number_format_id: Optional[int] = None
+    # variable symbol inherited from AccountingDocumentBase
+    your_name: Optional[str] = None
+    your_street: Optional[str] = None
+    your_city: Optional[str] = None
+    your_zip: Optional[str] = None
+    your_country: Optional[str] = None
+    your_registration_no: Optional[str] = None
+    your_vat_no: Optional[str] = None
+    your_local_vat_no: Optional[str] = None
 
+    client_name: Optional[str] = None
+    client_street: Optional[str] = None
+    client_city: Optional[str] = None
+    client_zip: Optional[str] = None
+    client_country: Optional[str] = None
+    client_has_delivery_address: Optional[bool] = None
+    client_delivery_name: Optional[str] = None
+    client_delivery_street: Optional[str] = None
+    client_delivery_city: Optional[str] = None
+    client_delivery_zip: Optional[str] = None
+    client_delivery_country: Optional[str] = None
+    client_registration_no: Optional[str] = None
+    client_vat_no: Optional[str] = None
+
+    subject_custom_id: Optional[str] = None
+    generator_id: Optional[int] = None
+    related_id: Optional[int] = None
+
+    paypal: Optional[bool] = None
+    gopay: Optional[bool] = None
+
+    token: Optional[str] = None
+    status: Optional[InvoiceStatus] = None
+    order_number: Optional[str] = None
+    issued_on: Optional[date] = None
+    taxable_fullfillment_due: Optional[str] = None
+    due: Optional[int] = None
+    sent_at: Optional[datetime] = None
+    paid_on: Optional[date] = None
+    reminder_sent_at: Optional[datetime] = None
+    cancelled_at: Optional[datetime] = None
+    uncollectible_at: Optional[datetime] = None
+    locaked_at: Optional[datetime] = None
+    webinvoice_seen_on: Optional[date] = None
+    note: Optional[str] = None
+    footer_note: Optional[str] = None
+    # tags inherited from AccountingDocumentBase
     bank_account_id: Optional[int] = None
-
+    # bank_account inherited from AccountingDocumentBase
+    # iban inherited from AccountingDocumentBase
+    # swift_bic inherited from AccountingDocumentBase
+    iban_visibility: Optional[IbanVisibility] = None
+    show_already_paid_note_in_pdf: Optional[bool] = None
+    # payment_method inherited from AccountingDocumentBase
+    # custom_payment_method inherited from AccountingDocumentBase
+    hide_bank_account: Optional[bool] = None
+    # currency inherited from AccountingDocumentBase
+    # exchange_rate inherited from AccountingDocumentBase
+    language: Optional[Language] = None
+    transferred_tax_liability: Optional[bool] = None
+    supply_code: Optional[str] = None
+    oss: Optional[OSSMode] = None
+    # vat_price_mode inherited from AccountingDocumentBase
+    round_total: Optional[bool] = None
+    # subtotal inherited from AccountingDocumentBase
+    # native subtotal inherited from AccountingDocumentBase
+    remaining_ammount: Optional[Decimal] = None
+    remaining_native_ammount: Optional[Decimal] = None
+    eet_records: Optional[Sequence[EETRecord]] = None
     payments: Optional[Sequence[InvoicePayment]] = None
+    attachments: Optional[Sequence[Attachment]] = None
+
+    html_url: Optional[str] = None
+    public_html_url: Optional[str] = None
+    url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    subject_url: Optional[str] = None
 
     class Meta:
         readonly = [

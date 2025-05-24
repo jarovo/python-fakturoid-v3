@@ -38,7 +38,7 @@ classifiers = [
 test = [
   "freezegun >= 1.5.1",
   "black >= 25.1.0",
-  "pytest-examples == 0.0.17",
+  "pytest-examples == 0.0.18",
   "pre-commit >= 4.2.0",
   "pytest-recording >= 0.13.3",
   "pytest-doctestplus==1.4.0"

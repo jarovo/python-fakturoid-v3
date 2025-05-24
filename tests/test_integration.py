@@ -1,142 +1,161 @@
 import pytest
-from os import environ
 from fakturoid import Fakturoid, Invoice, Subject, Line, NotFoundError
 from fakturoid.api import JWTToken
 from datetime import timedelta
-
+from typing import Callable
 from decimal import Decimal
 from tests import conf
-from unittest import TestCase
 from pytest import MonkeyPatch
-
+from argparse import Namespace
+from typing import List, Callable
+from uuid import uuid4
 from vcr.cassette import Cassette
 
 
-def fakturoid_factory():
-    fa = Fakturoid(
-        conf.FAKTUROID_SLUG,
-        conf.FAKTUROID_CLIENT_ID,
-        conf.FAKTUROID_CLIENT_SECRET,
-        conf.TESTS_OBJECTS_NAME_PREFIX,
-    )
-    return fa
+@pytest.fixture
+def fakturoid_factory(live_fakturoid_creds: Namespace):
+    def factory():
+        return Fakturoid(
+            live_fakturoid_creds.FAKTUROID_SLUG,
+            live_fakturoid_creds.FAKTUROID_CLIENT_ID,
+            live_fakturoid_creds.FAKTUROID_CLIENT_SECRET,
+            user_agent="tests",
+        )
+
+    return factory
 
 
 @pytest.fixture
-def fa_cli(monkeypatch: MonkeyPatch, vcr: Cassette):
+def fcli(
+    monkeypatch: MonkeyPatch, vcr: Cassette, fakturoid_factory: Callable[[], Fakturoid]
+):
     fa_cli = fakturoid_factory()
-    if not conf.FAKTUROID_CLIENT_ID:
-        assert vcr
-        monkeypatch.setattr(
-            fa_cli,
-            "_token",
-            JWTToken(
-                token_type="Basic",
-                access_token="DUMMY_VALUE",
-                expires_in=timedelta(seconds=7200),
-            ),
-        )
-        assert not fa_cli._token.is_expired
+    monkeypatch.setattr(
+        fa_cli,
+        "_token",
+        JWTToken(
+            token_type="Basic",
+            access_token="DUMMY_VALUE",
+            expires_in=timedelta(seconds=7200),
+        ),
+    )
+    assert not fa_cli._token.is_expired
     return fa_cli
 
 
-@pytest.mark.skipif(
-    not conf.FAKTUROID_CLIENT_ID or not conf.FAKTUROID_CLIENT_SECRET,
-    reason="Credentials are needed to run test_login",
-)
-def test_login():
+def test_login(fakturoid_factory: Callable[[], Fakturoid]):
     fa_cli = fakturoid_factory()
     account = fa_cli.account.load()
     assert account
     assert account.name
 
 
-def prefixed_name(counter=0):
-    counter += 1
-    return f"{conf.TESTS_OBJECTS_NAME_PREFIX}-{counter}"
+@pytest.fixture
+def name_factory(request: pytest.FixtureRequest):
+    names: List[str] = []
+
+    def factory():
+        name = f"test-item-{request.function.__name__}-{uuid4()}"
+        names.append(name)
+        return name
+
+    yield factory
+
+    # Place for chcecking do we have any leftovers in the system
 
 
 @pytest.fixture
-def subject(fa_cli: Fakturoid):
-    subject = Subject(name=prefixed_name())
-    created_subject = fa_cli.subjects.create(subject)
+def subject(
+    fakturoid_factory: Callable[[], Fakturoid], name_factory: Callable[[], str]
+):
+    subject = Subject(name=name_factory())
+    fcli = fakturoid_factory()
+    created_subject = fcli.subjects.create(subject)
     assert created_subject.id
     yield created_subject
-    fa_cli.subjects.delete(created_subject.id)
+    fcli.subjects.delete(created_subject.id)
     with pytest.raises(NotFoundError):
-        fa_cli.subjects.get(id=created_subject.id)
+        fcli.subjects.get(id=created_subject.id)
 
 
-@pytest.mark.vcr
-def test_crud_subject(fa_cli: Fakturoid):
-    subject_name = prefixed_name()
-    created_subject = fa_cli.subjects.save(Subject(name=subject_name))
+def test_crud_subject(
+    fakturoid_factory: Callable[[], Fakturoid], name_factory: Callable[[], str]
+):
+    subject_name = name_factory()
+    fcli = fakturoid_factory()
+    created_subject = fcli.subjects.save(Subject(name=subject_name))
     assert created_subject.name == subject_name
 
-    new_subject_name = prefixed_name()
+    new_subject_name = name_factory()
     created_subject.name = new_subject_name
-    updated_subject = fa_cli.subjects.update(created_subject)
+    updated_subject = fcli.subjects.update(created_subject)
     assert updated_subject.name == new_subject_name
 
     subject_email = "test@gmail.com"
     updated_subject.email = subject_email
-    again_updated_subject = fa_cli.subjects.update(updated_subject)
+    again_updated_subject = fcli.subjects.update(updated_subject)
     assert again_updated_subject.name == new_subject_name
     assert again_updated_subject.email == subject_email
 
-    found_items = list(fa_cli.subjects.find(email=subject_email))
+    found_items = list(fcli.subjects.find(email=subject_email))
     assert found_items
     assert all(found_item.email == subject_email for found_item in found_items)
     assert again_updated_subject.id
-    fa_cli.subjects.delete(again_updated_subject.id)
-    found_items = list(fa_cli.subjects.find(email=subject_email))
+    fcli.subjects.delete(again_updated_subject.id)
+    found_items = list(fcli.subjects.find(email=subject_email))
     assert not any(
         found_item.id == again_updated_subject.id for found_item in found_items
     )
 
 
-@pytest.mark.vcr
-def test_crud_invoice(fa_cli: Fakturoid, subject: Subject):
+def test_crud_invoice(
+    fakturoid_factory: Callable[[], Fakturoid],
+    subject: Subject,
+    name_factory: Callable[[], str],
+):
+    fcli = fakturoid_factory()
     assert subject.id
-    created_invoice = fa_cli.invoices.save(
+    created_invoice = fcli.invoices.save(
         Invoice(
             subject_id=subject.id,
-            lines=[Line(name=prefixed_name(), unit_price=Decimal(1))],
+            lines=[Line(name=name_factory(), unit_price=Decimal(1))],
         )
     )
     assert created_invoice.id
-    by_id_invoice = fa_cli.invoices.get(id=created_invoice.id)
-    by_number_invoice = list(fa_cli.invoices.find(number=created_invoice.number))[0]
+    by_id_invoice = fcli.invoices.get(id=created_invoice.id)
+    by_number_invoice = list(fcli.invoices.find(number=created_invoice.number))[0]
     assert by_id_invoice == by_number_invoice
     assert by_id_invoice.id == by_number_invoice.id
     assert by_id_invoice.number == by_number_invoice.number
 
     created_invoice.lines.append(
-        Line(name=prefixed_name(), quantity=Decimal(2), unit_price=Decimal(2))
+        Line(name=name_factory(), quantity=Decimal(2), unit_price=Decimal(2))
     )
-    updated_invoice = fa_cli.invoices.save(created_invoice)
+    updated_invoice = fcli.invoices.save(created_invoice)
     assert updated_invoice.lines[1].quantity == 2
-    assert fa_cli.invoices.get(id=created_invoice.id).lines[1].quantity == 2
-    fa_cli.invoices.delete(created_invoice.id)
+    assert fcli.invoices.get(id=created_invoice.id).lines[1].quantity == 2
+    fcli.invoices.delete(created_invoice.id)
 
 
 @pytest.fixture
-def pagination_setup(fa_cli: Fakturoid):
+def pagination_setup(
+    fakturoid_factory: Callable[[], Fakturoid], name_factory: Callable[[], str]
+):
     TEST_ITEMS_COUNT = 60
-    tag = f"{prefixed_name()}-test-subjects"
+    fcli = fakturoid_factory()
+
     test_subjects = [
-        fa_cli.subjects.create(Subject(name=prefixed_name()))
+        fcli.subjects.create(Subject(name=name_factory()))
         for i in range(TEST_ITEMS_COUNT)
     ]
 
-    yield fa_cli, test_subjects
+    yield fcli, test_subjects
 
     for test_item in test_subjects:
         assert test_item.id
-        fa_cli.subjects.delete(test_item.id)
+        fcli.subjects.delete(test_item.id)
 
 
-@pytest.mark.vcr
 def test_pagination(pagination_setup: tuple[Fakturoid, list[Subject]]):
     fa_cli, test_subjects = pagination_setup
     found_items = set(i.id for i in fa_cli.subjects.list())

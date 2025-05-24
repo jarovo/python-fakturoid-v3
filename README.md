@@ -23,48 +23,32 @@ Tested with Python >= 3.9
 
 Generate the Client ID and Client Secret from your Fakturoid user screen: Settings → User account.
 
-```python fixture:isolation
-from fakturoid import Fakturoid
+### Create subject and  invoice
+```python
+>>> from fakturoid import Fakturoid, Invoice, Line, Subject
+>>> from datetime import date
+>>> from os import getenv
+>>> fa = Fakturoid(getenv('FAKTUROID_SLUG'), getenv('FAKTUROID_CLIENT_ID'), getenv('FAKTUROID_CLIENT_SECRET'), 'YourApp')
+>>> subject = Subject(name="foo", tags=("test",))
+>>> saved_subject = fa.subjects.save(subject)
+>>> line = Line(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20)
+>>> invoice = Invoice(subject_id=saved_subject.id, due=10, issued_on=date(2012, 3, 30), tags=("test",), lines=[line])
 
-fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
+>>> saved_invoice = fa.invoices.save(invoice)
+>>> print(saved_invoice.due_on)
+2012-04-09
+
 ```
 
-```python continuation
-from fakturoid import Fakturoid, Invoice, Line
-from datetime import date
 
-fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
+```python
+>>> test_invoices = fa.invoices.find(tag="test")
+>>> test_subjects = fa.subjects.find(tag="test")
+>>> for invoice in test_invoices:
+...     fa.invoices.delete(saved_invoice.id)
+>>> for subject in test_subjects:
+...     fa.subjects.delete(subject.id)
 
-# Print 25 regular invoices in year 2013:
-for invoice in fa.invoices(proforma=False, since=date(2013, 1, 1))[:25]:
-    print(invoice.number, invoice.total)
-
-# Delete subject with id 27:
-subject = fa.subject(27)
-fa.delete(subject)
-
-# And finally create new invoice:
-invoice = Invoice(
-    subject_id=28,
-    number='2013-0108',
-    due=10,
-    issued_on=date(2012, 3, 30),
-    taxable_fulfillment_due=date(2012, 3, 30),
-    lines=[
-        # use Decimal or string for floating values
-        Line(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20),
-        Line(
-            name='Soft material',
-            quantity=12,
-            unit_name='ks',
-            unit_price="4.60",
-            vat_rate=20,
-        ),
-    ],
-)
-fa.save(invoice)
-
-print(invoice.due_on)
 ```
 
 ## API

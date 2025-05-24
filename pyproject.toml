@@ -40,7 +40,8 @@ test = [
   "black >= 25.1.0",
   "pytest-examples == 0.0.17",
   "pre-commit >= 4.2.0",
-  "pytest-recording >= 0.13.3"
+  "pytest-recording >= 0.13.3",
+  "pytest-doctestplus==1.4.0"
 ]
 dev = [
   "mypy >= 1.15.0",
@@ -53,3 +54,6 @@ Repository = "https://github.com/jarovo/python-fakturoid-v3/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["fakturoid"]
+
+[tool.pytest.ini_options]
+addopts = "--doctest-plus --doctest-modules --doctest-glob='*.md'"

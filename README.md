@@ -28,7 +28,7 @@ Generate the Client ID and Client Secret from your Fakturoid user screen: Settin
 >>> from fakturoid import Fakturoid, Invoice, Line, Subject
 >>> from datetime import date
 >>> from os import getenv
->>> fa = Fakturoid(getenv('FAKTUROID_SLUG'), getenv('FAKTUROID_CLIENT_ID'), getenv('FAKTUROID_CLIENT_SECRET'), 'YourApp')
+>>> fa = Fakturoid.fromenv()
 >>> subject = Subject(name="foo", tags=("test",))
 >>> saved_subject = fa.subjects.save(subject)
 >>> line = Line(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20)

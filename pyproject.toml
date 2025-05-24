@@ -10,7 +10,8 @@ dependencies = [
   "pydantic[email]",
   "requests",
   "python-dateutil",
-  "deprecated"
+  "deprecated",
+  "sybil[pytest]"
 ]
 requires-python = ">=3.9"
 authors = [
@@ -56,4 +57,4 @@ Repository = "https://github.com/jarovo/python-fakturoid-v3/"
 packages = ["fakturoid"]
 
 [tool.pytest.ini_options]
-addopts = "--doctest-plus --doctest-modules --doctest-glob='*.md'"
+#addopts = "--doctest-plus --doctest-modules --doctest-glob='*.md'"

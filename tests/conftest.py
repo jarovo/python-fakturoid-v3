@@ -12,18 +12,23 @@ from sybil.parsers.codeblock import PythonCodeBlockParser
 from sybil.parsers.doctest import DocTestParser
 
 
+def requires_env(*envs: str):
+    env = environ.get("FAKTUROID_SLUG", "unit-tests")
+
+    return pytest.mark.skipif(
+        env not in list(envs), reason=f"Not suitable envrionment {env} for current test"
+    )
+
+
+@requires_env("fakturcalldev")
 @pytest.fixture
 def live_fakturoid_creds():
     namespace = Namespace()
     namespace.TESTS_OBJECTS_NAME_PREFIX = "python-fakturoid-v3-test"
-    try:
-        namespace.FAKTUROID_SLUG = environ["FAKTUROID_SLUG"]
-        namespace.FAKTUROID_CLIENT_ID = environ["FAKTUROID_CLIENT_ID"]
-        namespace.FAKTUROID_CLIENT_SECRET = environ["FAKTUROID_CLIENT_SECRET"]
-    except KeyError as err:
-        pytest.mark.skip(f"Missing env variable {err}")
-    else:
-        return namespace
+    namespace.FAKTUROID_SLUG = environ["FAKTUROID_SLUG"]
+    namespace.FAKTUROID_CLIENT_ID = environ["FAKTUROID_CLIENT_ID"]
+    namespace.FAKTUROID_CLIENT_SECRET = environ["FAKTUROID_CLIENT_SECRET"]
+    return namespace
 
 
 def scrub_authorization_from_requests(request):

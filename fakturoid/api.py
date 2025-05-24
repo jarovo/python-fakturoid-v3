@@ -11,6 +11,7 @@ from pydantic import TypeAdapter
 import base64
 import logging
 from string import Template
+from os import environ
 
 import requests
 
@@ -243,14 +244,26 @@ def create_collection_api_class(
     return _AutoAPI
 
 
+@dataclass
 class Fakturoid:
     """Fakturoid API v3 - https://www.fakturoid.cz/api/v3"""
 
     slug: str
     client_id: str
     client_secret: str
-    user_agent: str
-    _token: JWTToken
+    user_agent: str = (
+        "python-fakturoid-v3 (https://github.com/jarovo/python-fakturoid-v3)"
+    )
+    _token: JWTToken = field(init=False)
+    session: requests.Session = field(init=False)
+
+    @classmethod
+    def from_env(cls):
+        return cls(
+            slug=environ["FAKTUROID_SLUG"],
+            client_id=environ["FAKTUROID_CLIENT_ID"],
+            client_secret=environ["FAKTUROID_CLIENT_SECRET"],
+        )
 
     subjects = create_collection_api_class(
         Subject, Template("accounts/${slug}/subjects")
@@ -299,12 +312,7 @@ class Fakturoid:
 
     base_url = "https://app.fakturoid.cz/api/v3"
 
-    def __init__(self, slug: str, client_id: str, client_secret: str, user_agent: str):
-        self.slug = slug
-        self.user_agent = user_agent
-        self.client_id = client_id
-        self.client_secret = client_secret
-
+    def __post_init__(self):
         # Init to dummy expired token that is about to lazy renewal.
         self._token = JWTToken(
             token_type="placeholder_token", access_token="", expires_in=timedelta(-1)

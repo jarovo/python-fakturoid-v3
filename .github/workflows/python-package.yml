@@ -45,6 +45,5 @@ jobs:
       run: |
         pytest
       env:
-        FAKTUROID_SLUG: ${{ FAKTUROID_SLUG }}
         FAKTUROID_CLIENT_ID: ${{ secrets.FAKTUROID_CLIENT_ID }}
         FAKTUROID_CLIENT_SECRET: ${{ secrets.FAKTUROID_CLIENT_SECRET }}

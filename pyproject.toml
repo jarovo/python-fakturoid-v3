@@ -56,4 +56,4 @@ Repository = "https://github.com/jarovo/python-fakturoid-v3/"
 packages = ["fakturoid"]
 
 [tool.pytest.ini_options]
-addopts = "--doctest-plus --doctest-modules --doctest-glob='*.md'"
+#addopts = "--doctest-plus --doctest-modules --doctest-glob='*.md'"

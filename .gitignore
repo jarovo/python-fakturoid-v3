@@ -35,3 +35,5 @@ nosetests.xml
 .project
 .pydevproject
 .codegpt
+
+.fakturoid.env

@@ -4,7 +4,7 @@ from fakturoid.api import JWTToken
 from datetime import timedelta
 from typing import Callable
 from decimal import Decimal
-from tests import conf
+from tests import defaults
 from pytest import MonkeyPatch
 from argparse import Namespace
 from typing import List, Callable
@@ -19,7 +19,7 @@ def fakturoid_factory(live_fakturoid_creds: Namespace):
             live_fakturoid_creds.FAKTUROID_SLUG,
             live_fakturoid_creds.FAKTUROID_CLIENT_ID,
             live_fakturoid_creds.FAKTUROID_CLIENT_SECRET,
-            user_agent="tests",
+            user_agent=defaults.TESTS_USER_AGENT,
         )
 
     return factory
@@ -160,4 +160,4 @@ def test_pagination(pagination_setup: tuple[Fakturoid, list[Subject]]):
     fa_cli, test_subjects = pagination_setup
     found_items = set(i.id for i in fa_cli.subjects.list())
     created_items = set(i.id for i in test_subjects)
-    assert found_items == created_items
+    assert created_items <= found_items

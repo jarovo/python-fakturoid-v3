@@ -160,4 +160,4 @@ def test_pagination(pagination_setup: tuple[Fakturoid, list[Subject]]):
     fa_cli, test_subjects = pagination_setup
     found_items = set(i.id for i in fa_cli.subjects.list())
     created_items = set(i.id for i in test_subjects)
-    assert created_items in found_items
+    assert created_items <= found_items

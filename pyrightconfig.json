@@ -1,6 +1,0 @@
-{
-  "include": ["fakturoid", "testsp"],
-  "venvPath": ".",
-  "venv": ".venv",
-  "reportMissingImports": true
-}

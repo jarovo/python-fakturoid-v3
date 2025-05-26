@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Optional, Union, Literal, Any, Sequence
 from decimal import Decimal
 from pydantic.dataclasses import dataclass
-from pydantic import Field, BaseModel, EmailStr, AnyUrl, PrivateAttr
+from pydantic import Field, BaseModel, EmailStr, AnyUrl
 
 from fakturoid.strenum import StrEnum
 
@@ -19,7 +19,7 @@ class Model(BaseModel):
     __original_data__: dict[str, Any] = {}
     __resource_path__: Optional[str] = None
 
-    def __init__(self, **data):
+    def __init__(self, **data: Any):
         super().__init__(**data)
         object.__setattr__(self, "__original_data__", self.model_dump())
 

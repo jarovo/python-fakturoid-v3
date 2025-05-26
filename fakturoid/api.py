@@ -91,7 +91,6 @@ class NotFoundError(FakturoidError):
 
 
 M = TypeVar("M", bound=Model)
-T_UniqueMixin = TypeVar("T_UniqueMixin", bound=UniqueMixin)
 
 
 class APIBase(ABC):
@@ -236,7 +235,7 @@ def create_collection_api_class[T_UniqueMixin: UniqueMixin](
     class _AutoAPI(AbstractCollectionAPI[T_UniqueMixin]):
         _model_type = model_t
         base_path_template = base_path_template_
-        _page_type_adapter = TypeAdapter(List[model_t])
+        _page_type_adapter = TypeAdapter(List[model_t])  # type: ignore[valid-type]
 
     _AutoAPI.__name__ = f"{model_t.__name__}sCollectionAPI"
 

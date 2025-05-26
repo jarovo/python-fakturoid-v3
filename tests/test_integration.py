@@ -2,14 +2,13 @@ import pytest
 from fakturoid import Fakturoid, Invoice, Subject, Line, NotFoundError
 from fakturoid.api import JWTToken
 from datetime import timedelta
-from typing import Callable
+from typing import Callable, cast
 from decimal import Decimal
 from tests import defaults
 from pytest import MonkeyPatch
 from argparse import Namespace
 from typing import List, Callable
 from uuid import uuid4
-from vcr.cassette import Cassette
 
 
 @pytest.fixture
@@ -26,9 +25,7 @@ def fakturoid_factory(live_fakturoid_creds: Namespace):
 
 
 @pytest.fixture
-def fcli(
-    monkeypatch: MonkeyPatch, vcr: Cassette, fakturoid_factory: Callable[[], Fakturoid]
-):
+def fcli(monkeypatch: MonkeyPatch, fakturoid_factory: Callable[[], Fakturoid]):
     fa_cli = fakturoid_factory()
     monkeypatch.setattr(
         fa_cli,
@@ -123,6 +120,7 @@ def test_crud_invoice(
     )
     assert created_invoice.id
     by_id_invoice = fcli.invoices.get(id=created_invoice.id)
+    assert created_invoice.number
     by_number_invoice = list(fcli.invoices.find(number=created_invoice.number))[0]
     assert by_id_invoice == by_number_invoice
     assert by_id_invoice.id == by_number_invoice.id

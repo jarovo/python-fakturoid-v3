@@ -1,11 +1,10 @@
 import freezegun
 import unittest
-from datetime import date
 from unittest.mock import patch, MagicMock
 from decimal import Decimal
 
 from fakturoid.api import Fakturoid
-from fakturoid.models import InvoiceAction, LockableAction
+from fakturoid.models import InvoiceAction
 
 from tests.mock import response, FakeResponse
 from pytest import fixture

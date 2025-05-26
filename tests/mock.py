@@ -17,6 +17,6 @@ class FakeResponse(object):
         pass
 
 
-def response(name):
+def response(name: str):
     content = open(os.path.join(os.path.dirname(__file__), "responses", name)).read()
     return FakeResponse(content)

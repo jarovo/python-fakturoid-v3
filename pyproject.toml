@@ -8,12 +8,12 @@ version = "1.0.0"
 dependencies = [
   "pydantic >= 2.0",
   "pydantic[email]",
-  "requests",
+  "requests==2.32.3",
   "python-dateutil",
   "deprecated",
   "sybil[pytest]"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 authors = [
   {name = "Roman Krejcik", email = "farin@farin.cz"},
   {name = "Jaroslav Henner", email = "jaroslav.henner@gmail.com"},
@@ -45,8 +45,8 @@ test = [
   "pytest-doctestplus==1.4.0"
 ]
 dev = [
-  "mypy >= 1.15.0",
-  'types-requests'
+  "mypy",
+  'types-requests==2.32.0.20250515'
 ]
 
 [project.urls]

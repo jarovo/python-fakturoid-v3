@@ -1,12 +1,10 @@
 from __future__ import annotations
-
-from abc import ABC, abstractmethod
+from abc import ABC
 import re
 from dataclasses import dataclass, field
 import typing
-from typing import Optional, Final, TypeVar, Generic, Type, List
+from typing import Optional, Final, TypeVar, Generic, Type, List, Mapping, Dict
 from datetime import datetime, timedelta
-from functools import wraps
 from pydantic import TypeAdapter
 import base64
 import logging
@@ -36,13 +34,6 @@ __all__ = ["Fakturoid", "NotFoundError"]
 
 LOGGER: Final = logging.getLogger("python-fakturoid-v3")
 LINK_HEADER_PATTERN: Final = re.compile(r'page=(\d+)[^>]*>; rel="last"')
-
-
-def extract_page_link(header):
-    m = LINK_HEADER_PATTERN.search(header)
-    if m:
-        return int(m.group(1))
-    return None
 
 
 class APIResponse:
@@ -100,75 +91,79 @@ class NotFoundError(FakturoidError):
 
 
 M = TypeVar("M", bound=Model)
-U = TypeVar("U", bound=UniqueMixin)
 
 
 class APIBase(ABC):
-    _client: Optional[Fakturoid]
+    _fakturoid: Optional["Fakturoid"]
+    base_path_template: Template
 
     def __init__(self, base_path_context: Optional[dict[str, str]] = None):
         self.base_path_context = base_path_context or {}
 
     @property
-    def client(self) -> Fakturoid:
-        assert self._client
-        return self._client
+    def fakturoid(self) -> "Fakturoid":
+        assert self._fakturoid
+        return self._fakturoid
 
-    @property
-    @abstractmethod
-    def base_path_template(self) -> Template:
-        raise NotImplementedError("Subclasses must implement this method.")
-
-    def base_path(self, **kwargs) -> str:
+    def base_path(self, **kwargs: str) -> str:
         return self.base_path_template.substitute(
-            slug=self.client.slug, **self.base_path_context, **kwargs
+            slug=self.fakturoid.slug, **self.base_path_context, **kwargs
         )
 
-    def __get__(self, obj, objtype=None):
-        self._client = obj
+    def __get__(self, obj: Fakturoid, objtype: Optional[Type[Fakturoid]] = None):
+        self._fakturoid = obj
         return self
 
 
 class LoadableAPI(APIBase, Generic[M]):
+    _model_type: Type[M]
+
     @property
-    def _model_type(self) -> Type[M]:
+    def _model_type_(self) -> Type[M]:
         raise NotImplementedError("Subclasses must implement this method.")
 
     def load(self) -> M:
-        self.client._ensure_authenticated()
-        response = self.client._get(f"{self.base_path()}.json")
+        self.fakturoid.ensure_authenticated()
+        response = self.fakturoid.get(f"{self.base_path()}.json")
         return self._model_type.model_validate_json(response.text)
 
 
-class CollectionAPI(APIBase, Generic[U]):
-    PER_PAGE: Final[int] = 40
-    _model_type: Type[U]
-    _page_type_adapter: TypeAdapter[List[U]]
+T_UniqueMixin = TypeVar("T_UniqueMixin", bound=UniqueMixin)
 
-    def get(self, id: int) -> U:
-        self.client._ensure_authenticated()
-        response = self.client._get(f"{self.base_path()}/{id}.json")
+
+class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
+    PER_PAGE: Final[int] = 40
+    _model_type: Type[T_UniqueMixin]
+    _page_type_adapter: TypeAdapter[List[T_UniqueMixin]]
+
+    def get(self, id: int) -> T_UniqueMixin:
+        self.fakturoid.ensure_authenticated()
+        response = self.fakturoid.get(f"{self.base_path()}/{id}.json")
         return self._bind(self._model_type.model_validate_json(response.text))
 
-    def _bind(self, obj: U) -> U:
+    def _bind(self, obj: T_UniqueMixin) -> T_UniqueMixin:
         assert isinstance(obj, Model)
         obj.__resource_path__ = self.base_path()
         return obj
 
-    def list(self, **params) -> List[U]:
+    def list(self, **params: str) -> List[T_UniqueMixin]:
         return list(self._paginated(f"{self.base_path()}.json", **params))
 
-    def search(self, **params) -> List[U]:
+    def search(self, **params: str) -> List[T_UniqueMixin]:
         return list(self._paginated(f"{self.base_path()}/search.json", **params))
 
-    def _paginated(self, path, **params) -> typing.Generator[U, None, None]:
-        self.client._ensure_authenticated()
+    def _paginated(
+        self, path: str, **params: str
+    ) -> typing.Generator[T_UniqueMixin, None, None]:
+        self.fakturoid.ensure_authenticated()
         page_no = 1
 
         while True:
             # Include the `page` parameter in the request
-            paged_params = {**params, "page": page_no}
-            response = self.client._get(f"{self.base_path()}.json", params=paged_params)
+            paged_params: Dict[str, str] = {**params, "page": str(page_no)}
+            response = self.fakturoid.get(
+                f"{self.base_path()}.json", params=paged_params
+            )
             results_page = self._page_type_adapter.validate_json(response.text)
             # Yield each item from the current page
             for item in results_page:
@@ -179,16 +174,16 @@ class CollectionAPI(APIBase, Generic[U]):
 
             page_no += 1  # Increment page number to fetch the next page
 
-    def create(self, instance: U) -> U:
-        self.client._ensure_authenticated()
+    def create(self, instance: T_UniqueMixin) -> T_UniqueMixin:
+        self.fakturoid.ensure_authenticated()
         json_str = instance.model_dump_json(exclude_unset=True)
-        response = self.client._post(f"{self.base_path()}.json", json_str)
+        response = self.fakturoid.post(f"{self.base_path()}.json", json_str)
         return self._model_type.model_validate_json(response.text)
 
     def delete(self, instance_id: int) -> None:
-        self.client._ensure_authenticated()
-        response = self.client.session.delete(
-            f"{self.client.base_url}/{self.base_path()}/{instance_id}.json"
+        self.fakturoid.ensure_authenticated()
+        response = self.fakturoid.session.delete(
+            f"{self.fakturoid.base_url}/{self.base_path()}/{instance_id}.json"
         )
         try:
             response.raise_for_status()
@@ -198,22 +193,22 @@ class CollectionAPI(APIBase, Generic[U]):
             )
             raise fakturoid_error from err
 
-    def find(self, **kwargs) -> typing.Generator[U]:
+    def find(self, **kwargs: str) -> typing.Generator[T_UniqueMixin]:
         all_items = self.list(**kwargs)
         for item in all_items:
             if all(getattr(item, k, None) == v for k, v in kwargs.items()):
                 yield item
 
-    def update(self, instance: U) -> U:
+    def update(self, instance: T_UniqueMixin) -> T_UniqueMixin:
         payload = instance.to_patch_payload()
-        self.client._ensure_authenticated()
-        response = self.client._patch(
+        self.fakturoid.ensure_authenticated()
+        response = self.fakturoid.patch(
             f"{self.base_path()}/{instance.id}.json",
             payload.model_dump_json(exclude_unset=True),
         )
         return self._model_type.model_validate_json(response.text)
 
-    def save(self, instance: U) -> U:
+    def save(self, instance: T_UniqueMixin) -> T_UniqueMixin:
         if instance.id:
             return self.update(instance)
         else:
@@ -228,19 +223,24 @@ class ActionAPI(APIBase, Generic[A]):
     slug: str
 
     def fire(self, id: int, action: A):
-        url = self.base_path(id=id)
-        self.client._post(url, data=None, params={"event": action.value})
+        url = self.base_path(id=str(id))
+        self.fakturoid.post(url, data=None, params={"event": action.value})
 
 
-def create_collection_api_class(
-    model: Type[U], _base_path_template: Template
-) -> type[CollectionAPI[U]]:
-    class _AutoAPI(CollectionAPI[U]):
-        base_path_template = _base_path_template
-        _model_type = model
-        _page_type_adapter = TypeAdapter(list[model])  # type: ignore[valid-type]
+def create_collection_api_class[T_UniqueMixin: UniqueMixin](
+    model_t: Type[T_UniqueMixin],
+    base_path_template_: Template,
+) -> type[AbstractCollectionAPI[T_UniqueMixin]]:
 
-    _AutoAPI.__name__ = f"{model.__name__}sCollectionAPI"
+    class _AutoAPI(AbstractCollectionAPI[T_UniqueMixin]):
+        _model_type = model_t
+        base_path_template = base_path_template_
+        _page_type_adapter = TypeAdapter(List[model_t])  # type: ignore[valid-type]
+
+    _AutoAPI.__name__ = f"{model_t.__name__}sCollectionAPI"
+
+    # Cast the return type for static type checkers
+    # return cast(type[CollectionAPI[T]], _AutoAPI)
     return _AutoAPI
 
 
@@ -353,7 +353,7 @@ class Fakturoid:
         resp.raise_for_status()
         self._token = JWTToken.model_validate_json(resp.text)
 
-    def _ensure_authenticated(self):
+    def ensure_authenticated(self):
         self._ensure_token()
         self._set_authorization(self.user_agent, self._token)
 
@@ -365,7 +365,7 @@ class Fakturoid:
             }
         )
 
-    def _get(self, path: str, params=None) -> APIResponse:
+    def get(self, path: str, params: Optional[Mapping[str, str]] = None) -> APIResponse:
         url = f"{self.base_url}/{path}"
         response = self.session.get(url, params=params)
         if response.status_code == 404:
@@ -374,7 +374,7 @@ class Fakturoid:
             response.raise_for_status()
         return APIResponse(response)
 
-    def _post(
+    def post(
         self, path: str, data: str | None, params: Optional[dict[str, str]] = None
     ) -> APIResponse:
         url = f"{self.base_url}/{path}"
@@ -386,8 +386,8 @@ class Fakturoid:
             raise new_err from err
         return APIResponse(response)
 
-    def _patch(self, path: str, json_str: str) -> APIResponse:
-        self._ensure_authenticated()
+    def patch(self, path: str, json_str: str) -> APIResponse:
+        self.ensure_authenticated()
         response = self.session.patch(f"{self.base_url}/{path}", data=json_str)
         response.raise_for_status()
         return APIResponse(response)

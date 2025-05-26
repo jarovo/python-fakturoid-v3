@@ -110,8 +110,6 @@ class DefaultEstimate(StrEnum):
 
 
 class Account(TimeTrackedMixin):
-    """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-
     subdomain: Optional[str] = None
     plan: Optional[str] = None
     plan_price: Optional[Decimal] = None
@@ -206,8 +204,6 @@ class WebinvoiceHistory(StrEnum):
 
 
 class Subject(UniqueMixin, TimeTrackedMixin):
-    """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-
     name: str
 
     custom_id: Optional[str] = None
@@ -352,8 +348,10 @@ class AccountingDocumentBase(UniqueMixin):
     total: Optional[Decimal] = None
     native_subtotal: Optional[Decimal] = None
 
-    lines: list[Line] = Field(default_factory=lambda x: list(x))
-    vat_rates_summary: list[VatRateSummary] = Field(default_factory=lambda: list())
+    lines: list[Line] = Field(default_factory=list[Line])
+    vat_rates_summary: list[VatRateSummary] = Field(
+        default_factory=list[VatRateSummary]
+    )
 
     class Meta:
         always_include = ["subject_id"]
@@ -416,8 +414,6 @@ class EETRecord(UniqueMixin):
 
 
 class Invoice(AccountingDocumentBase):
-    """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-
     document_type: Optional[DocumentType] = None
     proforma_followup_document: Optional[ProformaFollowupDocument] = None
     tax_document_ids: Optional[set[int]] = None
@@ -502,125 +498,27 @@ class Invoice(AccountingDocumentBase):
     pdf_url: Optional[str] = None
     subject_url: Optional[str] = None
 
-    class Meta:
-        readonly = [
-            "id",
-            "token",
-            "status",
-            "due_on",
-            "sent_at",
-            "paid_at",
-            "reminder_sent_at",
-            "accepted_at",
-            "canceled_at",
-            "subtotal",
-            "native_subtotal",
-            "total",
-            "native_total",
-            "remaining_amount",
-            "remaining_native_amount",
-            "html_url",
-            "public_html_url",
-            "url",
-            "updated_at",
-            "subject_url",
-        ]
-        decimal = [
-            "exchange_rate",
-            "subtotal",
-            "total",
-            "native_subtotal",
-            "native_total",
-            "remaining_amount",
-            "remaining_native_amount",
-        ]
-
     def __unicode__(self):
-        return self.number
+        return str(self.number)
 
 
 class InventoryItem(UniqueMixin):
-    """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-
     name: str
-
-    class Meta:
-        readonly = "id"
-        writeable = "name sku article_number_type article_number unit_name vat_rate supply_type private_note suggest_for".split()
-        boolean = ["track_quantity", "allow_below_zero"]
-        decimal = "quantity min_quantity max_quantity native_purchase_price native_retail_price".split()
 
     def __unicode__(self):
         return self.name
 
 
 class Expense(AccountingDocumentBase):
-    """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-
     # custom_id: Inherited from AccountingDocument Base
     # number: Inherited from AccountingDocumentBase
     original_number: Optional[str] = None
 
     payments: Optional[Sequence[ExpensePayment]] = None
 
-    class Meta:
-        readonly = [
-            "id",
-            "supplier_name",
-            "supplier_street",
-            "supplier_city",
-            "supplier_zip",
-            "supplier_country",
-            "supplier_registration_no",
-            "supplier_vat_no",
-            "status",
-            "paid_on",
-            "subtotal",
-            "total",
-            "native_subtotal",
-            "native_total",
-            "html_url",
-            "url",
-            "subject_url",
-            "created_at",
-            "updated_at",
-        ]
-        decimal = [
-            "exchange_rate",
-            "subtotal",
-            "total",
-            "native_subtotal",
-            "native_total",
-        ]
-
-    def __unicode__(self):
-        return self.number
-
 
 class Generator(UniqueMixin):
-    """See http://docs.fakturoid.apiary.io/ for complete field reference."""
-
     name: str
-
-    class Meta:
-        readonly = [
-            "id",
-            "subtotal",
-            "native_subtotal",
-            "total",
-            "native_total",
-            "html_url",
-            "url",
-            "subject_url",
-            "updated_at",
-        ]
-        decimal = [
-            "exchange_rate",
-            "subtotal",
-            "total",
-            "native_subtotal",
-            "native_total",
-        ]
 
     def __unicode__(self):
         return self.name

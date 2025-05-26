@@ -9,6 +9,8 @@ from fakturoid.models import InvoiceAction, LockableAction
 
 from tests.mock import response, FakeResponse
 from pytest import fixture
+from typing import cast
+from datetime import datetime
 
 
 @fixture
@@ -17,7 +19,7 @@ def frozen_time():
         yield frozen_time
 
 
-def test_oauth_credentials_flow(frozen_time):
+def test_oauth_credentials_flow(frozen_time: freezegun.api.FrozenDateTimeFactory):
     fa = Fakturoid(
         "unit_tests_slug",
         "CLIENT_ID",
@@ -30,6 +32,8 @@ def test_oauth_credentials_flow(frozen_time):
         ) as get_mock,
         patch("requests.post", return_value=response("token.json")) as post_mock,
     ):
+        get_mock = cast(MagicMock, get_mock)
+        post_mock = cast(MagicMock, post_mock)
 
         assert fa._token.is_expired == True
         assert fa._token.to_be_renewed == True
@@ -38,11 +42,10 @@ def test_oauth_credentials_flow(frozen_time):
 
         fa.invoices.get(1)
         assert get_mock.call_count == 1
-        assert fa.session.get.call_count == 1
 
         assert fa.invoices.get(id=1)
         assert post_mock.call_count == 1
-        assert fa.session.get.call_count == 2
+        assert get_mock.call_count == 2
 
         frozen_time.move_to("2025-05-01 19:50:00")
         # The token should be renewed
@@ -50,7 +53,7 @@ def test_oauth_credentials_flow(frozen_time):
         assert fa._token.is_expired == False
         assert fa.invoices.get(1)
         assert post_mock.call_count == 2
-        assert fa.session.get.call_count == 3
+        assert get_mock.call_count == 3
 
 
 class FakturoidTestCase(unittest.TestCase):
@@ -97,7 +100,9 @@ class SubjectTestCase(FakturoidTestCase):
         )
         self.assertEqual(28, subject.id)
         self.assertEqual("47123737", subject.registration_no)
-        self.assertEqual("2012-06-02T09:34:47+02:00", subject.updated_at.isoformat())
+        self.assertEqual(
+            "2012-06-02T09:34:47+02:00", cast(datetime, subject.updated_at).isoformat()
+        )
 
     def test_find(self):
         with patch.object(
@@ -173,7 +178,7 @@ class InvoiceTestCase(FakturoidTestCase):
             self.fa.invoices.list()[:10]
         mock.assert_called_once_with(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json",
-            params={"page": 1},
+            params={"page": "1"},
         )
         self.assertEqual(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json",

@@ -15,8 +15,7 @@ repos:
     - id: black
       language_version: python3  # Or match your project version, e.g., python3.9
 
-- repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.15.0  # Match the mypy version you're using
+- repo: https://github.com/RobertCraigie/pyright-python
+  rev: v1.1.401
   hooks:
-    - id: mypy
-      language: system
+    - id: pyright

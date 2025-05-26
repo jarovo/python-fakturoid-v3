@@ -13,7 +13,7 @@ dependencies = [
   "deprecated",
   "sybil[pytest]"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 authors = [
   {name = "Roman Krejcik", email = "farin@farin.cz"},
   {name = "Jaroslav Henner", email = "jaroslav.henner@gmail.com"},
@@ -45,7 +45,7 @@ test = [
   "pytest-doctestplus==1.4.0"
 ]
 dev = [
-  "mypy >= 1.15.0",
+  "pyright",
   'types-requests'
 ]
 

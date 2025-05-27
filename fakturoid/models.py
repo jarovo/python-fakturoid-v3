@@ -334,6 +334,7 @@ class AccountingDocumentBase(UniqueMixin):
     variable_symbol: Optional[str] = None
 
     due_on: Optional[date] = None
+    locked_at: Optional[datetime] = None
     paid_on: Optional[date] = None
     tags: Optional[set[str]] = None
     bank_account: Optional[str] = None
@@ -457,11 +458,11 @@ class Invoice(AccountingDocumentBase):
     taxable_fullfillment_due: Optional[str] = None
     due: Optional[int] = None
     sent_at: Optional[datetime] = None
-    paid_on: Optional[date] = None
+    # paid_on, locked_at # Inherited from AccountingDocumentBase
     reminder_sent_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
     uncollectible_at: Optional[datetime] = None
-    locaked_at: Optional[datetime] = None
+
     webinvoice_seen_on: Optional[date] = None
     note: Optional[str] = None
     footer_note: Optional[str] = None

@@ -501,6 +501,7 @@ class Invoice(AccountingDocumentBase):
 
 class InventoryItem(UniqueMixin):
     name: str
+    native_retail_price: Optional[Decimal] = None
 
 
 class Expense(AccountingDocumentBase):

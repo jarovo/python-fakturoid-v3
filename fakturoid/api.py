@@ -3,7 +3,7 @@ from abc import ABC
 import re
 from dataclasses import dataclass, field
 import typing
-from typing import Optional, Final, TypeVar, Generic, Type, List, Mapping, Dict
+from typing import Optional, Final, TypeVar, Generic, Type, List, Mapping, Dict, Any
 from datetime import datetime, timedelta
 from pydantic import TypeAdapter
 import base64
@@ -147,11 +147,11 @@ class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
         obj.__resource_path__ = self.base_path()
         return obj
 
-    def list(self, **params: str) -> typing.Iterator[T_UniqueMixin]:
+    def list(self, **params: str) -> typing.Iterable[T_UniqueMixin]:
         """
         Deprecated. Use index.
         """
-        return self.index(**params)
+        return list(self.index(**params))
 
     def index(self, **params: str) -> typing.Iterator[T_UniqueMixin]:
         """
@@ -159,10 +159,10 @@ class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
         """
         return self._paginated(f"{self.base_path()}.json", **params)
 
-    def find(self, **kwargs: str) -> typing.Iterator[T_UniqueMixin]:
+    def find(self, **kwargs: Any) -> typing.Iterator[T_UniqueMixin]:
         all_items = self.index(**kwargs)
         for item in all_items:
-            if all(getattr(item, k, None) == v for k, v in kwargs.items()):
+            if all(getattr(item, k) == v for k, v in kwargs.items()):
                 yield item
 
     def search(self, **params: str) -> typing.Iterator[T_UniqueMixin]:

@@ -107,7 +107,7 @@ class SubjectTestCase(FakturoidTestCase):
         with patch.object(
             self.fa.session, "get", return_value=response("subjects.json")
         ) as mock:
-            subjects = self.fa.subjects.list()
+            subjects = list(self.fa.subjects.index())
         mock.assert_called_once()
         self.assertEqual(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/subjects.json",
@@ -136,7 +136,7 @@ class InvoiceTestCase(FakturoidTestCase):
         with patch.object(
             self.fa.session, "post", return_value=FakeResponse("")
         ) as mock:
-            self.fa.invoice_event.fire(9, InvoiceAction.Cancel)
+            self.fa.invoice_action.fire(9, InvoiceAction.Cancel)
 
         mock.assert_called_once_with(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices/9/fire.json",
@@ -170,11 +170,11 @@ class InvoiceTestCase(FakturoidTestCase):
             data=new_response_text,
         )
 
-    def test_list(self):
+    def test_index(self):
         with patch.object(
             self.fa.session, "get", return_value=response("invoices.json")
         ) as mock:
-            self.fa.invoices.list()[:10]
+            list(self.fa.invoices.list())
         mock.assert_called_once_with(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/invoices.json",
             params={"page": "1"},
@@ -191,13 +191,15 @@ class InventoryTestCase(FakturoidTestCase):
         with patch.object(
             self.fa.session, "get", return_value=response("inventory_items.json")
         ) as mock:
-            inventory_items = self.fa.inventory_items.list()
+            inventory_items = list(
+                self.fa.inventory_items.find(native_retail_price=400)
+            )
         mock.assert_called_once()
         self.assertEqual(
             "https://app.fakturoid.cz/api/v3/accounts/myslug/inventory_items.json",
             mock.call_args[0][0],
         )
-        self.assertEqual(4, len(inventory_items))
+        self.assertEqual(2, len(inventory_items))
 
     def test_get(self):
         with patch.object(

@@ -40,14 +40,19 @@ class Model(BaseModel):
     def to_patch_payload(self):
         return type(self)(**self.changed_fields())
 
-    def __unicode__(self):
-        return "<{0}>".format(self.__class__.__name__)
+    _display_fields = list[str]()
+
+    def __str__(self):
+        values = {k: getattr(self, k) for k in self._display_fields}
+        return f"<{self.__class__.__name__} {', '.join(f'{k}={v}' for k, v in values.items())}>"
 
 
 Currency = str
 
 
 class UniqueMixin(Model):
+    _display_fields = ["id"]
+
     id: Optional[int] = Field(default_factory=lambda: None, exclude=False)
 
 
@@ -204,6 +209,9 @@ class WebinvoiceHistory(StrEnum):
 
 
 class Subject(UniqueMixin, TimeTrackedMixin):
+
+    _display_fields = ["name"]
+
     name: str
 
     custom_id: Optional[str] = None
@@ -262,9 +270,6 @@ class Subject(UniqueMixin, TimeTrackedMixin):
             "created_at" "updated_at",
         ]
 
-    def __unicode__(self):
-        return self.name
-
 
 @dataclass
 class LineInventory:
@@ -293,15 +298,6 @@ class Line(UniqueMixin):
         readonly: list[str] = []  # no id here, to correct update
         decimal = ["quantity", "unit_price"]
 
-    def __unicode__(self):
-        if self.unit_name:
-            return "{0} {1} {2}".format(self.quantity, self.unit_name, self.name)
-        else:
-            if self.quantity == 1:
-                return self.name
-            else:
-                return "{0} {1}".format(self.quantity, self.name)
-
 
 class VatRateSummary(Model):
     vat_rate: Decimal
@@ -328,6 +324,9 @@ class Attachment(Model):
 
 
 class AccountingDocumentBase(UniqueMixin):
+
+    _display_fields = ["id", "number"]
+
     subject_id: int
 
     custom_id: Optional[str] = None
@@ -335,6 +334,7 @@ class AccountingDocumentBase(UniqueMixin):
     variable_symbol: Optional[str] = None
 
     due_on: Optional[date] = None
+    locked_at: Optional[datetime] = None
     paid_on: Optional[date] = None
     tags: Optional[set[str]] = None
     bank_account: Optional[str] = None
@@ -458,11 +458,11 @@ class Invoice(AccountingDocumentBase):
     taxable_fullfillment_due: Optional[str] = None
     due: Optional[int] = None
     sent_at: Optional[datetime] = None
-    paid_on: Optional[date] = None
+    # paid_on, locked_at # Inherited from AccountingDocumentBase
     reminder_sent_at: Optional[datetime] = None
     cancelled_at: Optional[datetime] = None
     uncollectible_at: Optional[datetime] = None
-    locaked_at: Optional[datetime] = None
+
     webinvoice_seen_on: Optional[date] = None
     note: Optional[str] = None
     footer_note: Optional[str] = None
@@ -498,15 +498,10 @@ class Invoice(AccountingDocumentBase):
     pdf_url: Optional[str] = None
     subject_url: Optional[str] = None
 
-    def __unicode__(self):
-        return str(self.number)
-
 
 class InventoryItem(UniqueMixin):
     name: str
-
-    def __unicode__(self):
-        return self.name
+    native_retail_price: Optional[Decimal] = None
 
 
 class Expense(AccountingDocumentBase):
@@ -519,9 +514,6 @@ class Expense(AccountingDocumentBase):
 
 class Generator(UniqueMixin):
     name: str
-
-    def __unicode__(self):
-        return self.name
 
 
 class LockableAction(StrEnum):

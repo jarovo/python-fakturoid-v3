@@ -8,4 +8,5 @@ pytest_collect_file = Sybil(
         PythonCodeBlockParser(future_imports=["print_function"]),
     ],
     pattern="*.md",
-)
+    fixtures=[],
+).pytest()

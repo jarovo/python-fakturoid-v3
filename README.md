@@ -21,86 +21,89 @@ Tested with Python >= 3.9
 
 ## Quickstart
 
-Generate the Client ID and Client Secret from your Fakturoid user screen: Settings → User account.
+Generate the Client ID and Client Secret from your Fakturoid user screen: Settings → User account and set environment variables:
+
+```shell
+# Check the definitions in the file
+$ cat .env
+FAKTUROID_SLUG = ******
+FAKTUROID_CLIENT_ID = *****
+FAKTUROID_CLIENT_SECRET = ******
+
+# Load the env file
+$ . .env
+```
 
 ### Create subject and  invoice
+Now you can start Python and start using Fakturoid.
 ```python
 >>> from fakturoid import Fakturoid, Invoice, Line, Subject
 >>> from datetime import date
->>> from os import getenv
->>> fa = Fakturoid.fromenv()
+>>> # fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET')
+>>> # or
+>>> fa = Fakturoid.from_env()
+
+```
+
+Then we can create a first subject.
+```python
 >>> subject = Subject(name="foo", tags=("test",))
 >>> saved_subject = fa.subjects.save(subject)
+
+```
+
+And create a line and invoice for that subject.
+
+```python
 >>> line = Line(name='Hard work', unit_name='h', unit_price=40000, vat_rate=20)
 >>> invoice = Invoice(subject_id=saved_subject.id, due=10, issued_on=date(2012, 3, 30), tags=("test",), lines=[line])
-
->>> saved_invoice = fa.invoices.save(invoice)
->>> print(saved_invoice.due_on)
+>>> first_saved_invoice = fa.invoices.save(invoice)
+>>> print(first_saved_invoice.due_on)
 2012-04-09
 
 ```
 
+We can find the invoices from that date.
+```python
+>>> assert 1 == len(list(fa.invoices.find(subject_id=saved_subject.id)))
+>>> second_saved_invoice = fa.invoices.save(invoice)
+>>> found_invoices = list(fa.invoices.find(subject_id=saved_subject.id))
+>>> assert 2 == len(list(invoice for invoice in found_invoices))
+
+```
+
+
+Fires basic action on invoice. All actions are described in [Fakturoid API docs](https://www.fakturoid.cz/api/v3/invoices#invoice-actions).
 
 ```python
->>> test_invoices = fa.invoices.find(tag="test")
->>> test_subjects = fa.subjects.find(tag="test")
+>>> from fakturoid.models import InvoiceAction
+>>> fa.invoice_action.fire(first_saved_invoice.id, InvoiceAction.Lock)
+>>> first_saved_invoice = fa.invoices.get(first_saved_invoice.id)
+>>> assert first_saved_invoice.locked_at is not None
+
+```
+
+We cannot delete the locked invoice:
+```python
+>>> from fakturoid.api import FakturoidError
+>>> try:
+...     fa.invoices.delete(first_saved_invoice.id)
+... except FakturoidError as e:
+...     pass
+... else:
+...     assert False, "This codepath should't get executed."
+
+```
+
+We can delete what we created (after unlocking the locked invoice.)
+
+```python
+>>> fa.invoice_action.fire(first_saved_invoice.id, InvoiceAction.Unlock)
+>>> test_invoices = list(fa.invoices.search(tags=("test",)))
 >>> for invoice in test_invoices:
-...     fa.invoices.delete(saved_invoice.id)
->>> for subject in test_subjects:
-...     fa.subjects.delete(subject.id)
+...     fa.invoices.delete(invoice.id)
+>>> fa.subjects.delete(saved_subject.id)
 
-```
-
-## API
-
-<code>Fakturoid.<b>account()</b></code>
-
-Returns `Account` instance. Account is readonly and can't be updated by API.
-
-<code>Fakturoid.<b>subject(id)</b></code>
-
-Returns `Subject` instance.
-
-<code>Fakturoid.<b>subjects(since=None, updated_since=None, custom_id=None)</b></code>
-
-Loads all subjects filtered by args.
-If since (`date` or `datetime`) parameter is passed, returns only subjects created since given date.
-
-<code>Fakturoid.<b>subjects.search("General Motors")</b></code>
-
-Perform full text search on subjects
-
-<code>Fakturoid.<b>invoce(id)</b></code>
-
-Returns `Invoice` instance.
-
-<code>Fakturoid.<b>invoices(proforma=None, subject_id=None, since=None, updated_since=None, number=None, status=None, custom_id=None)</b></code>
-
-Use `proforma=False`/`True` parameter to load regular or proforma invoices only.
-
-Returns list of invoices. Invoices are lazily loaded according to slicing.
-```python
-from fakturoid import Fakturoid
-
-fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
-fa.invoices(status='paid')[:100]  # loads 100 paid invoices
-fa.invoices()[
-    -1
-]  # loads first issued invoice (invoices are ordered from latest to first)
-```
-
-<code>Fakturoid.<b>fire_invoice_event(id, event, **args)</b></code>
-
-Fires basic events on invoice. All events are described in [Fakturoid API docs](https://www.fakturoid.cz/api/v3/invoices#invoice-actions).
-
-Pay event can accept optional arguments `paid_at` and `paid_amount`
-```python
-from fakturoid import Fakturoid
-from datetime import date
-
-fa = Fakturoid('yourslug', 'CLIENT_ID', 'CLIENT_SECRET', 'YourApp')
-fa.fire_invoice_event(11331402, 'pay', paid_at=date(2018, 11, 17), paid_amount=2000)
-```
 
 <code>Fakturoid.<b>generator(id)</b></code>
 

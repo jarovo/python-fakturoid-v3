@@ -1,21 +1,13 @@
-import json
-from urllib.parse import parse_qs
-from datetime import datetime
 import pytest
 from os import environ
 from argparse import Namespace
-
-
-from sybil import Sybil
-from sybil.parsers.codeblock import PythonCodeBlockParser
-from sybil.parsers.doctest import DocTestParser
 
 
 def requires_env(*envs: str):
     env = environ.get("FAKTUROID_SLUG", "unit-tests")
 
     return pytest.mark.skipif(
-        env not in list(envs), reason=f"Not suitable envrionment {env} for current test"
+        env not in list(envs), reason=f"Not suitable environment {env} for current test"
     )
 
 

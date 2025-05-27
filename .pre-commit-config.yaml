@@ -13,7 +13,6 @@ repos:
   rev: 25.1.0  # Use the latest stable tag
   hooks:
     - id: black
-      #language_version: python3  # Or match your project version, e.g., python3.9
 
 - repo: https://github.com/pre-commit/mirrors-mypy
   rev: v1.15.0  # Match the mypy version you're using

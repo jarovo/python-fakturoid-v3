@@ -54,6 +54,9 @@ Repository = "https://github.com/jarovo/python-fakturoid-v3/"
 
 [tool.hatch.build.targets.wheel]
 packages = ["fakturoid"]
+include = [
+  "fakturoid/py.typed"
+]
 
 [tool.pytest.ini_options]
 #addopts = "--doctest-plus --doctest-modules --doctest-glob='*.md'"

@@ -73,23 +73,36 @@ We can find the invoices from that date.
 ```
 
 
-Fires basic events on invoice. All events are described in [Fakturoid API docs](https://www.fakturoid.cz/api/v3/invoices#invoice-actions).
+Fires basic action on invoice. All actions are described in [Fakturoid API docs](https://www.fakturoid.cz/api/v3/invoices#invoice-actions).
 
 ```python
 >>> from fakturoid.models import InvoiceAction
 >>> fa.invoice_action.fire(first_saved_invoice.id, InvoiceAction.Lock)
+>>> first_saved_invoice = fa.invoices.get(first_saved_invoice.id)
+>>> assert first_saved_invoice.locked_at is not None
 
 ```
 
-We can delete what we created
+We cannot delete the locked invoice:
+```python
+>>> from fakturoid.api import FakturoidError
+>>> try:
+...     fa.invoices.delete(first_saved_invoice.id)
+... except FakturoidError as e:
+...     pass
+... else:
+...     assert False, "This codepath should't get executed."
+
+```
+
+We can delete what we created (after unlocking the locked invoice.)
 
 ```python
->>> test_invoices = fa.invoices.find(tag="test")
->>> test_subjects = fa.subjects.find(tag="test")
+>>> fa.invoice_action.fire(first_saved_invoice.id, InvoiceAction.Unlock)
+>>> test_invoices = list(fa.invoices.search(tags=("test",)))
 >>> for invoice in test_invoices:
-...     fa.invoices.delete(saved_invoice.id)
->>> for subject in test_subjects:
-...     fa.subjects.delete(subject.id)
+...     fa.invoices.delete(invoice.id)
+>>> fa.subjects.delete(saved_subject.id)
 
 
 <code>Fakturoid.<b>generator(id)</b></code>

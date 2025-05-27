@@ -29,6 +29,7 @@ from fakturoid.models import (
 )
 from fakturoid.strenum import StrEnum
 
+
 __all__ = ["Fakturoid", "NotFoundError"]
 
 
@@ -146,15 +147,31 @@ class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
         obj.__resource_path__ = self.base_path()
         return obj
 
-    def list(self, **params: str) -> List[T_UniqueMixin]:
-        return list(self._paginated(f"{self.base_path()}.json", **params))
+    def list(self, **params: str) -> typing.Iterator[T_UniqueMixin]:
+        """
+        Deprecated. Use index.
+        """
+        return self.index(**params)
 
-    def search(self, **params: str) -> List[T_UniqueMixin]:
-        return list(self._paginated(f"{self.base_path()}/search.json", **params))
+    def index(self, **params: str) -> typing.Iterator[T_UniqueMixin]:
+        """
+        Returns iterator over all items in collection.
+        """
+        return self._paginated(f"{self.base_path()}.json", **params)
 
-    def _paginated(
-        self, path: str, **params: str
-    ) -> typing.Generator[T_UniqueMixin, None, None]:
+    def find(self, **kwargs: str) -> typing.Iterator[T_UniqueMixin]:
+        all_items = self.index(**kwargs)
+        for item in all_items:
+            if all(getattr(item, k, None) == v for k, v in kwargs.items()):
+                yield item
+
+    def search(self, **params: str) -> typing.Iterator[T_UniqueMixin]:
+        """
+        Does fulltext search
+        """
+        return self._paginated(f"{self.base_path()}/search.json", **params)
+
+    def _paginated(self, path: str, **params: str) -> typing.Iterator[T_UniqueMixin]:
         self.fakturoid.ensure_authenticated()
         page_no = 1
 
@@ -192,12 +209,6 @@ class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
                 f"Couldn't delete {instance_id}. {response.text}"
             )
             raise fakturoid_error from err
-
-    def find(self, **kwargs: str) -> typing.Generator[T_UniqueMixin]:
-        all_items = self.list(**kwargs)
-        for item in all_items:
-            if all(getattr(item, k, None) == v for k, v in kwargs.items()):
-                yield item
 
     def update(self, instance: T_UniqueMixin) -> T_UniqueMixin:
         payload = instance.to_patch_payload()
@@ -292,7 +303,7 @@ class Fakturoid:
     class InvoiceActionAPI(ActionAPI[InvoiceAction]):
         base_path_template = Template("accounts/${slug}/invoices/${id}/fire.json")
 
-    invoice_event = InvoiceActionAPI()
+    invoice_action = InvoiceActionAPI()
 
     inventory_items = create_collection_api_class(
         InventoryItem, Template("accounts/${slug}/inventory_items")

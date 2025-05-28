@@ -72,6 +72,19 @@ We can find the invoices from that date.
 
 ```
 
+... and register payment.
+```python
+>>> from fakturoid.models import InvoicePayment
+>>> payment = fa.invoice_payment.create(first_saved_invoice, InvoicePayment(paid_on=date(2023, 12, 6)))
+>>> payment.paid_on
+datetime.datetime(2023, 12, 6, 0, 0)
+>>> payment.native_amount
+Decimal('40000.0')
+>>> first_saved_invoice = fa.invoices.get(first_saved_invoice.id)
+>>> first_saved_invoice.payments[0].paid_on
+datetime.datetime(2023, 12, 6, 0, 0)
+
+```
 
 Fires basic action on invoice. All actions are described in [Fakturoid API docs](https://www.fakturoid.cz/api/v3/invoices#invoice-actions).
 
@@ -82,6 +95,7 @@ Fires basic action on invoice. All actions are described in [Fakturoid API docs]
 >>> assert first_saved_invoice.locked_at is not None
 
 ```
+
 
 We cannot delete the locked invoice:
 ```python

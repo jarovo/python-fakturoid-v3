@@ -2,13 +2,14 @@ import pytest
 from fakturoid import Fakturoid, Invoice, Subject, Line, NotFoundError
 from fakturoid.api import JWTToken
 from datetime import timedelta
-from typing import Callable, cast
+from typing import Callable
 from decimal import Decimal
 from tests import defaults
 from pytest import MonkeyPatch
 from argparse import Namespace
 from typing import List, Callable
 from uuid import uuid4
+from fakturoid.models import InvoicePayment, Expense, ExpensePayment
 
 
 @pytest.fixture
@@ -62,7 +63,7 @@ def name_factory(request: pytest.FixtureRequest):
 
 
 @pytest.fixture
-def subject(
+def saved_subject(
     fakturoid_factory: Callable[[], Fakturoid], name_factory: Callable[[], str]
 ):
     subject = Subject(name=name_factory())
@@ -73,6 +74,33 @@ def subject(
     fcli.subjects.delete(created_subject.id)
     with pytest.raises(NotFoundError):
         fcli.subjects.get(id=created_subject.id)
+
+
+@pytest.fixture
+def saved_invoice(
+    fakturoid_factory: Callable[[], Fakturoid],
+    name_factory: Callable[[], str],
+    saved_subject: Subject,
+):
+    fcli = fakturoid_factory()
+    assert saved_subject.id
+    created_invoice = fcli.invoices.create(Invoice(subject_id=saved_subject.id))
+    assert created_invoice.id
+    yield created_invoice
+    fcli.invoices.delete(created_invoice.id)
+
+
+@pytest.fixture
+def saved_expense(
+    fakturoid_factory: Callable[[], Fakturoid],
+    saved_subject: Subject,
+):
+    fcli = fakturoid_factory()
+    assert saved_subject.id
+    created_expense = fcli.expenses.create(Expense(subject_id=saved_subject.id))
+    assert created_expense.id
+    yield created_expense
+    fcli.expenses.delete(created_expense.id)
 
 
 def test_crud_subject(
@@ -107,14 +135,14 @@ def test_crud_subject(
 
 def test_crud_invoice(
     fakturoid_factory: Callable[[], Fakturoid],
-    subject: Subject,
+    saved_subject: Subject,
     name_factory: Callable[[], str],
 ):
     fcli = fakturoid_factory()
-    assert subject.id
+    assert saved_subject.id
     created_invoice = fcli.invoices.save(
         Invoice(
-            subject_id=subject.id,
+            subject_id=saved_subject.id,
             lines=[Line(name=name_factory(), unit_price=Decimal(1))],
         )
     )
@@ -133,6 +161,62 @@ def test_crud_invoice(
     assert updated_invoice.lines[1].quantity == 2
     assert fcli.invoices.get(id=created_invoice.id).lines[1].quantity == 2
     fcli.invoices.delete(created_invoice.id)
+
+
+def test_invoice_payments(
+    fakturoid_factory: Callable[[], Fakturoid],
+    saved_invoice: Invoice,
+    name_factory: Callable[[], str],
+):
+    fa = fakturoid_factory()
+    saved_invoice.lines.append(
+        Line(
+            name=name_factory(),
+            unit_price=Decimal(1000),
+            unit_name="pc.",
+            quantity=Decimal(1),
+        )
+    )
+    saved_invoice = fa.invoices.save(saved_invoice)
+    assert saved_invoice.id
+    invoice_payment = fa.invoice_payment.create(saved_invoice, InvoicePayment())
+    assert invoice_payment.amount == 1000
+    saved_invoice = fa.invoices.get(saved_invoice.id)
+    assert saved_invoice.payments is not None
+    assert saved_invoice.id
+    assert saved_invoice.paid_on
+    assert len(saved_invoice.payments) == 1
+
+    fa.invoice_payment.delete(saved_invoice, invoice_payment)
+    saved_invoice = fa.invoices.get(saved_invoice.id)
+    assert saved_invoice.payments is not None
+    assert not any(saved_invoice.payments)
+    assert saved_invoice.paid_on is None
+
+
+def test_expense_payments(
+    fakturoid_factory: Callable[[], Fakturoid],
+    saved_expense: Expense,
+    name_factory: Callable[[], str],
+):
+    fa = fakturoid_factory()
+    saved_expense.lines.append(
+        Line(
+            name=name_factory(),
+            unit_price=Decimal(1000),
+            unit_name="pc.",
+            quantity=Decimal(1),
+        )
+    )
+    saved_expense = fa.expenses.save(saved_expense)
+    assert saved_expense.id
+    expense_payment = fa.expense_payment.create(saved_expense, ExpensePayment())
+    assert expense_payment.amount == 1000
+
+    fa.expense_payment.delete(saved_expense, expense_payment)
+    saved_expense = fa.expenses.get(saved_expense.id)
+    assert saved_expense.payments is not None
+    assert not any(saved_expense.payments)
 
 
 @pytest.fixture

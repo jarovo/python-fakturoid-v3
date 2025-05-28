@@ -373,17 +373,21 @@ class ProformaFollowupDocument(StrEnum):
     None_ = "none"
 
 
-class ExpensePayment(UniqueMixin, TimeTrackedMixin):
+class Payment(UniqueMixin, TimeTrackedMixin):
     paid_on: Optional[datetime] = None
     currency: Optional[Currency] = None
-    ammount: Optional[Decimal] = None
+    amount: Optional[Decimal] = None
     native_amount: Optional[Decimal] = None
     mark_document_as_paid: Optional[bool] = None
     variable_symbol: Optional[str] = None
     bank_account_id: Optional[int] = None
 
 
-class InvoicePayment(ExpensePayment):
+class ExpensePayment(Payment):
+    pass
+
+
+class InvoicePayment(Payment):
     proforma_followup_document: Optional[ProformaFollowupDocument] = None
     send_thank_you_email: Optional[bool] = None
     tax_document_id: Optional[int] = None
@@ -486,8 +490,8 @@ class Invoice(AccountingDocumentBase):
     round_total: Optional[bool] = None
     # subtotal inherited from AccountingDocumentBase
     # native subtotal inherited from AccountingDocumentBase
-    remaining_ammount: Optional[Decimal] = None
-    remaining_native_ammount: Optional[Decimal] = None
+    remaining_amount: Optional[Decimal] = None
+    remaining_native_amount: Optional[Decimal] = None
     eet_records: Optional[Sequence[EETRecord]] = None
     payments: Optional[Sequence[InvoicePayment]] = None
     attachments: Optional[Sequence[Attachment]] = None

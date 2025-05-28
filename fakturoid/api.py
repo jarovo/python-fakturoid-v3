@@ -1,9 +1,9 @@
 from __future__ import annotations
-from abc import ABC
+from abc import ABC, abstractmethod
 import re
 from dataclasses import dataclass, field
 import typing
-from typing import Optional, Final, TypeVar, Generic, Type, List, Mapping, Dict, Any
+from typing import Optional, Final, Type, List, Mapping, Dict, Any
 from datetime import datetime, timedelta
 from pydantic import TypeAdapter
 import base64
@@ -26,6 +26,9 @@ from fakturoid.models import (
     UniqueMixin,
     InvoiceAction,
     LockableAction,
+    Payment,
+    InvoicePayment,
+    ExpensePayment,
 )
 from fakturoid.strenum import StrEnum
 
@@ -91,9 +94,6 @@ class NotFoundError(FakturoidError):
     pass
 
 
-M = TypeVar("M", bound=Model)
-
-
 class APIBase(ABC):
     _fakturoid: Optional["Fakturoid"]
     base_path_template: Template
@@ -116,7 +116,7 @@ class APIBase(ABC):
         return self
 
 
-class LoadableAPI(APIBase, Generic[M]):
+class LoadableAPI[M: Model](APIBase):
     _model_type: Type[M]
 
     @property
@@ -129,10 +129,7 @@ class LoadableAPI(APIBase, Generic[M]):
         return self._model_type.model_validate_json(response.text)
 
 
-T_UniqueMixin = TypeVar("T_UniqueMixin", bound=UniqueMixin)
-
-
-class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
+class AbstractCollectionAPI[T_UniqueMixin: UniqueMixin](APIBase):
     PER_PAGE: Final[int] = 40
     _model_type: Type[T_UniqueMixin]
     _page_type_adapter: TypeAdapter[List[T_UniqueMixin]]
@@ -226,16 +223,54 @@ class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
             return self.create(instance)
 
 
-A = TypeVar("A", bound=StrEnum)
-
-
-class ActionAPI(APIBase, Generic[A]):
-    path_template: Template
+class ActionAPI[A: StrEnum](APIBase):
+    base_path_template: Template
     slug: str
 
     def fire(self, id: int, action: A):
-        url = self.base_path(id=str(id))
-        self.fakturoid.post(url, data=None, params={"event": action.value})
+        path = self.base_path(id=str(id))
+        self.fakturoid.post(path, data=None, params={"event": action.value})
+
+
+class PaymentsAPI[T_UniqueMixin: UniqueMixin, T_Payment: Payment](APIBase):
+    model: type[T_Payment]
+
+    def create(self, payable: T_UniqueMixin, payment: T_Payment) -> T_Payment:
+        assert payable.id
+        response = self._create(payable_id=payable.id, payment=payment)
+        return self.model.model_validate_json(response.text)
+
+    def _create(self, payable_id: int, payment: T_Payment):
+        path = self.base_path(payable_id=str(payable_id)) + ".json"
+        self.fakturoid.ensure_authenticated()
+        response = self.fakturoid.post(path, data=payment.model_dump_json())
+        return response
+
+    def delete(self, payable: T_UniqueMixin, payment: T_Payment):
+        assert payable.id
+        assert payment.id
+        path = self.base_path(payable_id=str(payable.id)) + f"/{payment.id}.json"
+        self.fakturoid.delete(path)
+
+
+class InvoicePaymentsAPI(PaymentsAPI[Invoice, InvoicePayment]):
+    model = InvoicePayment
+    base_path_template = Template(r"accounts/${slug}/invoices/${payable_id}/payments")
+
+    def create_tax_document(self, invoice: Invoice, payment: InvoicePayment):
+        assert invoice.id
+        assert payment.id
+        path = (
+            self.base_path(payble_id=str(invoice.id))
+            + f"/{payment.id}/create_tax_document.json"
+        )
+        response = self.fakturoid.post(path, data=payment.model_dump_json())
+        return InvoicePayment.model_validate_json(response.text)
+
+
+class ExpensePaymentsAPI(PaymentsAPI[Expense, ExpensePayment]):
+    model = ExpensePayment
+    base_path_template = Template(r"accounts/${slug}/expenses/${payable_id}/payments")
 
 
 def create_collection_api_class[T_UniqueMixin: UniqueMixin](
@@ -305,6 +340,8 @@ class Fakturoid:
 
     invoice_action = InvoiceActionAPI()
 
+    invoice_payment = InvoicePaymentsAPI()
+
     inventory_items = create_collection_api_class(
         InventoryItem, Template("accounts/${slug}/inventory_items")
     )()
@@ -315,7 +352,8 @@ class Fakturoid:
     class ExpenseActionAPI(ActionAPI[LockableAction]):
         base_path_template = Template("accounts/${slug}/invoices/${id}/fire.json")
 
-    expense_event = ExpenseActionAPI()
+    expense_action = ExpenseActionAPI()
+    expense_payment = ExpensePaymentsAPI()
 
     generators = create_collection_api_class(
         Generator, Template("accounts/${slug}/generators")
@@ -401,4 +439,14 @@ class Fakturoid:
         self.ensure_authenticated()
         response = self.session.patch(f"{self.base_url}/{path}", data=json_str)
         response.raise_for_status()
+        return APIResponse(response)
+
+    def delete(self, path: str):
+        self.ensure_authenticated()
+        response = self.session.delete(f"{self.base_url}/{path}")
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as err:
+            new_err = FakturoidError(response.text)
+            raise new_err from err
         return APIResponse(response)

@@ -3,7 +3,7 @@ from abc import ABC
 import re
 from dataclasses import dataclass, field
 import typing
-from typing import Optional, Final, TypeVar, Generic, Type, List, Mapping, Dict, Any
+from typing import Optional, Final, Type, List, Mapping, Dict, Any
 from datetime import datetime, timedelta
 from pydantic import TypeAdapter
 import base64
@@ -91,9 +91,6 @@ class NotFoundError(FakturoidError):
     pass
 
 
-M = TypeVar("M", bound=Model)
-
-
 class APIBase(ABC):
     _fakturoid: Optional["Fakturoid"]
     base_path_template: Template
@@ -116,7 +113,7 @@ class APIBase(ABC):
         return self
 
 
-class LoadableAPI(APIBase, Generic[M]):
+class LoadableAPI[M: Model](APIBase):
     _model_type: Type[M]
 
     @property
@@ -129,10 +126,7 @@ class LoadableAPI(APIBase, Generic[M]):
         return self._model_type.model_validate_json(response.text)
 
 
-T_UniqueMixin = TypeVar("T_UniqueMixin", bound=UniqueMixin)
-
-
-class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
+class AbstractCollectionAPI[T_UniqueMixin: UniqueMixin](APIBase):
     PER_PAGE: Final[int] = 40
     _model_type: Type[T_UniqueMixin]
     _page_type_adapter: TypeAdapter[List[T_UniqueMixin]]
@@ -226,10 +220,7 @@ class AbstractCollectionAPI(APIBase, Generic[T_UniqueMixin]):
             return self.create(instance)
 
 
-A = TypeVar("A", bound=StrEnum)
-
-
-class ActionAPI(APIBase, Generic[A]):
+class ActionAPI[A: StrEnum](APIBase):
     path_template: Template
     slug: str
 

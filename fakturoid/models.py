@@ -373,7 +373,7 @@ class ProformaFollowupDocument(StrEnum):
     None_ = "none"
 
 
-class ExpensePayment(UniqueMixin, TimeTrackedMixin):
+class Payment(UniqueMixin, TimeTrackedMixin):
     paid_on: Optional[datetime] = None
     currency: Optional[Currency] = None
     ammount: Optional[Decimal] = None
@@ -383,7 +383,11 @@ class ExpensePayment(UniqueMixin, TimeTrackedMixin):
     bank_account_id: Optional[int] = None
 
 
-class InvoicePayment(ExpensePayment):
+class ExpensePayment(Payment):
+    pass
+
+
+class InvoicePayment(Payment):
     proforma_followup_document: Optional[ProformaFollowupDocument] = None
     send_thank_you_email: Optional[bool] = None
     tax_document_id: Optional[int] = None

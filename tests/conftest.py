@@ -1,6 +1,8 @@
 import pytest
 from os import environ
 from argparse import Namespace
+from uuid import uuid4
+import typing
 
 
 def requires_env(*envs: str):
@@ -20,3 +22,17 @@ def live_fakturoid_creds():
     namespace.FAKTUROID_CLIENT_ID = environ["FAKTUROID_CLIENT_ID"]
     namespace.FAKTUROID_CLIENT_SECRET = environ["FAKTUROID_CLIENT_SECRET"]
     return namespace
+
+
+@pytest.fixture
+def name_factory(request: pytest.FixtureRequest):
+    names: typing.List[str] = []
+
+    def factory():
+        name = f"test-item-{request.function.__name__}-{uuid4()}"
+        names.append(name)
+        return name
+
+    yield factory
+
+    # Place for chcecking do we have any leftovers in the system

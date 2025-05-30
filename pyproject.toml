@@ -10,8 +10,11 @@ dependencies = [
   "pydantic[email]",
   "requests==2.32.3",
   "python-dateutil",
-  "deprecated",
-  "sybil[pytest]"
+  "sybil[pytest]",
+  "httpx>=0.28.1",
+  "deprecated>=1.2.18",
+  "authlib>=1.6.0",
+  "pytest-asyncio>=1.0.0",
 ]
 requires-python = ">=3.12"
 authors = [

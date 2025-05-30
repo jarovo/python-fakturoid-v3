@@ -1,4 +1,4 @@
-import fakturoid
+import fakturoid.api
 from os import environ
 from fakturoid.models import InvoiceAction
 
@@ -12,13 +12,14 @@ def confirm_wipening_allowed():
 
 # Dont proceed without safety check.
 confirm_wipening_allowed()
-fa = fakturoid.Fakturoid.from_env()
+fa = fakturoid.api.Fakturoid.from_env()
 
 
 def delete_invoices():
     invoices_to_delete = list(fa.invoices.list())
     print(f"Deleting {invoices_to_delete}")
     for invoice in invoices_to_delete:
+        assert invoice.id
         if invoice.locked_at:
             fa.invoice_action.fire(invoice.id, InvoiceAction.Unlock)
         fa.invoices.delete(invoice.id)
@@ -28,6 +29,7 @@ def delete_subjects():
     subjects_to_delete = list(fa.subjects.list())
     print(f"Deleting {subjects_to_delete}")
     for subject in subjects_to_delete:
+        assert subject.id
         fa.subjects.delete(subject.id)
 
 

@@ -7,13 +7,15 @@ from pydantic import Field, BaseModel, EmailStr, AnyUrl
 
 from fakturoid.strenum import StrEnum
 
+from fakturoid.routing import RouteParamAware
+
 __all__ = ["Account", "Subject", "Line", "Invoice", "Generator", "Expense"]
 
 
 LOGGER = logging.getLogger("python-fakturoid-v3-model")
 
 
-class Model(BaseModel):
+class Model(BaseModel, RouteParamAware):
     """Base class for all Fakturoid model objects"""
 
     __original_data__: dict[str, Any] = {}

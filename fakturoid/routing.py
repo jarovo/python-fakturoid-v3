@@ -9,6 +9,13 @@ class RouteParamProvider(typing.Protocol):
     def get_route_params(self) -> typing.Iterator[tuple[str, str]]: ...
 
 
+def make_getter[T](fget: typing.Callable[[RouteParamProvider], str]):
+    def _route_param_name_getter(x: RouteParamProvider) -> str:
+        return fget(x)
+
+    return _route_param_name_getter
+
+
 class RouteParamAware:
     _route_param_registry: dict[str, typing.Callable[[RouteParamProvider], str]] = {}
 
@@ -18,16 +25,11 @@ class RouteParamAware:
 
         for attr in cls.__dict__.values():
             if isinstance(attr, property):
-                if fget := getattr(attr, "fget", None):
-                    if route_param_name := getattr(fget, ATTR_NAME_FIELD, None):
-
-                        def _route_param_name_getter(x: RouteParamProvider):
-                            assert fget
-                            return fget(x)
-
-                        cls._route_param_registry[route_param_name] = (
-                            _route_param_name_getter
-                        )
+                if getattr(attr, "fget", None) and (
+                    route_param_name := getattr(attr.fget, ATTR_NAME_FIELD, None)
+                ):
+                    assert attr.fget
+                    cls._route_param_registry[route_param_name] = make_getter(attr.fget)
 
     def get_route_params(self) -> typing.Iterator[tuple[str, str]]:
         for name, prop_getter in self._route_param_registry.items():

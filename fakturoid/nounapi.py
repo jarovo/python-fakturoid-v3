@@ -14,7 +14,7 @@ import base64
 import argparse
 from enum import StrEnum, auto
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fakturoid.routing import (
     RouteParamAware,
@@ -25,61 +25,90 @@ from fakturoid.routing import (
 
 
 @dataclass
-class FakturoidAuth(httpx.Auth):
+class FakturoidOAuth2CredsFlowAuth(httpx.Auth):
+    token_url: str
+    client_id: str
+    client_secret: str
     user_agent: str
-    jwt_token: api.JWTToken
+    jwt_token: api.JWTToken | None = None
 
-    async def async_auth_flow(self, request: httpx.Request):
+    async def async_auth_flow(
+        self, request: httpx.Request
+    ) -> typing.AsyncGenerator[httpx.Request, httpx.Response]:
+        if not self.jwt_token:
+            await self.authenticate()
+        assert self.jwt_token
+
         request.headers["User-Agent"] = self.user_agent
         request.headers["Authorization"] = (
             f"{self.jwt_token.token_type} {self.jwt_token.access_token}"
         )
-        yield request
+        response = yield request
+
+        if response.status_code == 401:
+            # If the server issues a 401 response, then issue a request to
+            # refresh tokens, and resend the request.
+            await self.authenticate()
+            request.headers["Authorization"] = (
+                f"{self.jwt_token.token_type} {self.jwt_token.access_token}"
+            )
+            yield request
+
+    async def authenticate(self):
+        credentials = base64.urlsafe_b64encode(
+            b":".join(
+                (self.client_id.encode("utf-8"), self.client_secret.encode("utf-8"))
+            )
+        )
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": self.user_agent,
+            "Authorization": "Basic " + credentials.decode(),
+        }
+        resp = await httpx.AsyncClient().post(
+            f"{self.token_url}",
+            headers=headers,
+            content=r'{"grant_type": "client_credentials"}',
+        )
+        if resp.is_error:
+            raise FakturoidApiError(resp)
+        self.jwt_token = api.JWTToken.model_validate_json(resp.text)
 
 
 @dataclass
 class Fakturoid(RouteParamAware):
-    slug: str
-    user_agent = "python-fakturoid-v3[nounapi]"
-    FAKTUROID_URL = "https://app.fakturoid.cz"
-    BASE_PATH = "/api/v3"
-    TOKEN_URL = "https://app.fakturoid.cz/api/v3/oauth/token"
-    http_client: httpx.AsyncClient = httpx.AsyncClient(base_url=FAKTUROID_URL)
-
-    @staticmethod
-    def from_env():
-        return dict(
-            client_id=environ["FAKTUROID_CLIENT_ID"],
-            client_secret=environ["FAKTUROID_CLIENT_SECRET"],
-        )
-
-    async def _oauth_token_client_credentials_flow(
-        self, client_id: str, client_secret: str
-    ):
-        credentials = base64.urlsafe_b64encode(
-            b":".join((client_id.encode("utf-8"), client_secret.encode("utf-8")))
-        )
-        headers = {
-            "Accept": "application/json",
-            "User-Agent": self.user_agent,
-            "Authorization": "Basic " + credentials.decode(),
-        }
-        resp = await self.http_client.post(
-            f"{self.TOKEN_URL}",
-            headers=headers,
-            data={"grant_type": "client_credentials"},
-        )
-        resp.raise_for_status()
-        token = api.JWTToken.model_validate_json(resp.text)
-        self.http_client.auth = FakturoidAuth(self.user_agent, jwt_token=token)
-        self.http_client.headers.update(
-            {"Accept": "application/json", "Content-Type": "application/json"}
-        )
+    slug: str = environ["FAKTUROID_SLUG"]
+    user_agent = "python-fakturoid-v3-tests (jaroslav.henner@gmail.com)"
+    fakturoid_url = "https://app.fakturoid.cz"
+    base_path = "/api/v3"
+    token_url = "https://app.fakturoid.cz/api/v3/oauth/token"
+    http_client: httpx.AsyncClient = field(init=False)
 
     @property
     @route_param("slug")
     def org_slug(self) -> str:
         return self.slug
+
+    async def __aenter__(self):
+        http_client = httpx.AsyncClient(
+            base_url=self.fakturoid_url,
+            auth=FakturoidOAuth2CredsFlowAuth(
+                self.token_url,
+                client_id=environ["FAKTUROID_CLIENT_ID"],
+                client_secret=environ["FAKTUROID_CLIENT_SECRET"],
+                user_agent=self.user_agent,
+            ),
+        )
+        http_client.headers.update(
+            {"Accept": "application/json", "Content-Type": "application/json"}
+        )
+        self.http_client = http_client
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.http_client:
+            await self.http_client.aclose()
 
 
 class FakturoidApiError(api.FakturoidError):
@@ -124,7 +153,7 @@ class AsyncHTTPVerb[T: RouteParamProvider](Verb):
     def build_url(self, fakturoid: Fakturoid):
         resolver = RouteParamResolver([fakturoid, self.noun])
         path = resolver.substitute(self.path_template)
-        return fakturoid.FAKTUROID_URL + fakturoid.BASE_PATH + path
+        return fakturoid.base_path + path
 
     async def make_http_call(
         self,
@@ -164,7 +193,7 @@ class AsyncPagedHttpVerb[T: models.Model](AsyncHTTPVerb[T]):
     async def __call__(
         self,
         fakturoid: Fakturoid,
-        query_params: argparse.Namespace = argparse.Namespace(),
+        query_params: argparse.Namespace = argparse.Namespace(page=1),
     ) -> typing.AsyncGenerator[T, None]:
         url = self.build_url(fakturoid)
         return self.load_all_pages(
@@ -176,7 +205,7 @@ class AsyncPagedHttpVerb[T: models.Model](AsyncHTTPVerb[T]):
         url: str,
         payload: str,
         fakturoid: Fakturoid,
-        params: argparse.Namespace = argparse.Namespace(),
+        params: argparse.Namespace,
     ):
         response = await super().make_http_call(url, payload, fakturoid, params=params)
         self.expect_response_code(response, 200)
@@ -187,7 +216,7 @@ class AsyncPagedHttpVerb[T: models.Model](AsyncHTTPVerb[T]):
         url: str,
         payload: str,
         fakturoid: Fakturoid,
-        params: argparse.Namespace = argparse.Namespace(),
+        params: argparse.Namespace,
     ):
         params = copy.copy(params)
         while True:
@@ -209,7 +238,7 @@ class AsyncCreateHttpVerb[T: models.Model](AsyncHTTPVerb[T]):
     async def __call__(self, fakturoid: Fakturoid) -> T:
         url = self.build_url(fakturoid)
         response = await self.make_http_call(
-            url, self.noun.model_dump_json(), fakturoid
+            url, self.noun.model_dump_json(exclude_unset=True), fakturoid
         )
         self.expect_response_code(response, 201)  # Created
         return self.model_t.model_validate_json(response.content)
@@ -270,23 +299,28 @@ class Subject(models.Subject):
     def subject_id(self) -> str:
         return str(self.id)
 
-    acreate: ClassVar = AsyncCreateHttpVerb[Self](
-        Template("/accounts/${slug}/subjects.json")
+    @property
+    @route_param("resource")
+    def resource(self):
+        return "subjects"
+
+    a_create: ClassVar = AsyncCreateHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}.json")
     )
-    aupdate: ClassVar = AsyncUpdateHttpVerb[Self](
-        Template("/accounts/${slug}/subjects/${id}.json")
+    a_update: ClassVar = AsyncUpdateHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/${id}.json")
     )
-    aindex: ClassVar = AsyncPagedHttpVerb[Self](
-        Template("/accounts/${slug}/subjects.json")
+    a_index: ClassVar = AsyncPagedHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}.json")
     )
-    asearch: ClassVar = AsyncPagedHttpVerb[Self](
-        Template("/accounts/${slug}/subjects/search.json")
+    a_search: ClassVar = AsyncPagedHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/search.json")
     )
-    adetail: ClassVar = AsyncDetailHttpVerb[Self](
-        Template("/accounts/${slug}/subjects/${id}.json")
+    a_detail: ClassVar = AsyncDetailHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/${id}.json")
     )
-    adelete: ClassVar = AsyncDeleteHttpVerb[Self](
-        Template("/accounts/${slug}/subjects/${id}.json")
+    a_delete: ClassVar = AsyncDeleteHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/${id}.json")
     )
 
     class IndexQueryParameters(QueryParameters):
@@ -306,23 +340,28 @@ class Invoice(models.Invoice):
     def invoice_id(self) -> str:
         return str(self.id)
 
-    acreate: ClassVar = AsyncCreateHttpVerb[Self](
-        Template("/accounts/${slug}/invoices.json")
+    @property
+    @route_param("resource")
+    def resource(self):
+        return "invoices"
+
+    a_create: ClassVar = AsyncCreateHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}.json")
     )
-    aupdate: ClassVar = AsyncUpdateHttpVerb[Self](
-        Template("/accounts/${slug}/invoices/${id}.json")
+    a_update: ClassVar = AsyncUpdateHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/${id}.json")
     )
-    aindex: ClassVar = AsyncPagedHttpVerb[Self](
-        Template("/accounts/${slug}/invoices.json")
+    a_index: ClassVar = AsyncPagedHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}.json")
     )
-    asearch: ClassVar = AsyncPagedHttpVerb[Self](
-        Template("/accounts/${slug}/invoices/search.json")
+    a_search: ClassVar = AsyncPagedHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/search.json")
     )
-    adetail: ClassVar = AsyncDetailHttpVerb[Self](
-        Template("/accounts/${slug}/invoices/${id}.json")
+    a_detail: ClassVar = AsyncDetailHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/${id}.json")
     )
-    adelete: ClassVar = AsyncDeleteHttpVerb[Self](
-        Template("/accounts/${slug}/invoices/${id}.json")
+    a_delete: ClassVar = AsyncDeleteHttpVerb[Self](
+        Template("/accounts/${slug}/${resource}/${id}.json")
     )
 
     class IndexQueryParameters(QueryParameters):

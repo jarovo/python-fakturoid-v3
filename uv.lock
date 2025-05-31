@@ -259,7 +259,6 @@ dependencies = [
     { name = "deprecated" },
     { name = "httpx" },
     { name = "pydantic", extra = ["email"] },
-    { name = "pytest-asyncio" },
     { name = "python-dateutil" },
     { name = "requests" },
     { name = "sybil", extra = ["pytest"] },
@@ -268,14 +267,23 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "mypy" },
+    { name = "pre-commit" },
     { name = "types-requests" },
 ]
 test = [
     { name = "black" },
     { name = "freezegun" },
     { name = "pre-commit" },
+    { name = "pytest-asyncio" },
     { name = "pytest-doctestplus" },
     { name = "pytest-recording" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "freezegun" },
+    { name = "pre-commit" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
@@ -286,10 +294,11 @@ requires-dist = [
     { name = "freezegun", marker = "extra == 'test'", specifier = ">=1.5.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mypy", marker = "extra == 'dev'" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.2.0" },
     { name = "pre-commit", marker = "extra == 'test'", specifier = ">=4.2.0" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic", extras = ["email"] },
-    { name = "pytest-asyncio", specifier = ">=1.0.0" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=1.0.0" },
     { name = "pytest-doctestplus", marker = "extra == 'test'", specifier = "==1.4.0" },
     { name = "pytest-recording", marker = "extra == 'test'", specifier = ">=0.13.3" },
     { name = "python-dateutil" },
@@ -298,6 +307,13 @@ requires-dist = [
     { name = "types-requests", marker = "extra == 'dev'", specifier = "==2.32.0.20250515" },
 ]
 provides-extras = ["test", "dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "freezegun", specifier = ">=1.5.2" },
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "pytest-asyncio", specifier = ">=1.0.0" },
+]
 
 [[package]]
 name = "filelock"

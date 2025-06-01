@@ -24,7 +24,9 @@ async def fa():
 
 @pytest_asyncio.fixture()
 async def example_subject(fa: nounapi.Fakturoid, name_factory: NameFactoryType):
-    return await nounapi.Subject(name=name_factory()).a_create(fa)
+    subject = await nounapi.Subject(name=name_factory()).a_create(fa)
+    yield subject
+    await subject.a_delete(fa)
 
 
 @pytest.mark.asyncio
@@ -36,7 +38,7 @@ async def test_subject_crud(fa: nounapi.Fakturoid, name_factory: NameFactoryType
     subject = await subject.a_update(fa)
     assert subject.name.endswith("updated")
     assert subject in [
-        item async for item in await nounapi.Subject(name=subject.name).a_index(fa)
+        item async for item in nounapi.Subject(name=subject.name).a_index(fa)
     ]
     assert subject.id
     await subject.a_delete(fa)
@@ -78,3 +80,14 @@ async def test_accounting_doc_crud(
     updated_doc = await created_doc.a_update(fa)
 
     assert 1 == len(updated_doc.lines)
+
+    await updated_doc.a_delete(fa)
+
+
+@pytest.mark.asyncio
+async def test_subjects_index(fa: nounapi.Fakturoid, example_subject: nounapi.Subject):
+    """Test that we can fetch subjects index."""
+    assert example_subject.id
+    subjects = [subject async for subject in nounapi.Subject.a_index(fa)]
+    assert len(subjects) > 0
+    assert any(subject.id == example_subject.id for subject in subjects)

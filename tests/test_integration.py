@@ -1,6 +1,6 @@
 import pytest
-from fakturoid import Fakturoid, Invoice, Subject, Line, NotFoundError
-from fakturoid.api import JWTToken
+from fakturoid.api import Fakturoid, NotFoundError, JWTToken
+from fakturoid.models import Invoice, Subject, Line
 from datetime import timedelta
 from typing import Callable
 from decimal import Decimal
@@ -46,20 +46,6 @@ def test_login(fakturoid_factory: Callable[[], Fakturoid]):
     account = fa_cli.account.load()
     assert account
     assert account.name
-
-
-@pytest.fixture
-def name_factory(request: pytest.FixtureRequest):
-    names: List[str] = []
-
-    def factory():
-        name = f"test-item-{request.function.__name__}-{uuid4()}"
-        names.append(name)
-        return name
-
-    yield factory
-
-    # Place for chcecking do we have any leftovers in the system
 
 
 @pytest.fixture

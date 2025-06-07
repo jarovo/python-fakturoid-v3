@@ -1,5 +1,5 @@
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import ABC
 import re
 from dataclasses import dataclass, field
 import typing
@@ -418,7 +418,7 @@ class Fakturoid:
         url = f"{self.base_url}/{path}"
         response = self.session.get(url, params=params)
         if response.status_code == 404:
-            raise NotFoundError(f"url={url}")
+            raise NotFoundError(f"url={url}, reason={response.text}")
         else:
             response.raise_for_status()
         return APIResponse(response)

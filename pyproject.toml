@@ -45,7 +45,7 @@ test = [
 ]
 dev = [
   "mypy",
-  'types-requests==2.32.0.20250515'
+  'types-requests==2.32.4.20250611'
 ]
 
 [project.urls]

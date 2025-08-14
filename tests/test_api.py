@@ -1,4 +1,5 @@
 import freezegun
+import freezegun.api
 import unittest
 from unittest.mock import patch, MagicMock
 from decimal import Decimal

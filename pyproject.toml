@@ -10,8 +10,11 @@ dependencies = [
   "pydantic[email]",
   "requests==2.32.3",
   "python-dateutil",
-  "deprecated",
-  "sybil[pytest]"
+  "sybil[pytest]",
+  "httpx>=0.28.1",
+  "deprecated>=1.2.18",
+  "authlib>=1.6.0",
+  "dotenv>=0.9.9",
 ]
 requires-python = ">=3.12"
 authors = [
@@ -41,11 +44,13 @@ test = [
   "black >= 25.1.0",
   "pre-commit >= 4.2.0",
   "pytest-recording >= 0.13.3",
-  "pytest-doctestplus==1.4.0"
+  "pytest-doctestplus==1.4.0",
+  "pytest-asyncio>=1.0.0",
 ]
 dev = [
   "mypy",
-  'types-requests==2.32.0.20250515'
+  'types-requests==2.32.0.20250515',
+  "pre-commit >= 4.2.0"
 ]
 
 [project.urls]
@@ -59,4 +64,11 @@ include = [
 ]
 
 [tool.pytest.ini_options]
+
+[dependency-groups]
+dev = [
+    "freezegun>=1.5.2",
+    "pre-commit>=4.2.0",
+    "pytest-asyncio>=1.0.0",
+]
 #addopts = "--doctest-plus --doctest-modules --doctest-glob='*.md'"
